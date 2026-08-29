@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Dynamic Spatial Rotation Trainer</title>
+
     <style>
         :root {
             --bg-color: #090d16;
@@ -103,7 +105,12 @@
         #canvas-container {
             width: 100%;
             height: 100%;
-            cursor: pointer;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        #canvas-container:active {
+            cursor: grabbing;
         }
 
         /* --- Overlay Panels --- */
@@ -176,6 +183,7 @@
             pointer-events: none;
             z-index: 5;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            white-space: nowrap;
         }
 
         .instruction-bar strong {
@@ -258,30 +266,131 @@
             padding: 9px 16px;
             font-size: 12px;
         }
+
+        /* --- Responsive Mobile Layout --- */
+        @media (max-width: 900px) {
+            header {
+                padding: 10px 14px;
+                height: auto;
+                min-height: 64px;
+                gap: 10px;
+            }
+
+            h1 {
+                font-size: 16px;
+                flex-shrink: 0;
+            }
+
+            .dashboard {
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            .community-link {
+                display: none;
+            }
+
+            .stat-value {
+                font-size: 16px;
+            }
+
+            main {
+                height: calc(100vh - 64px);
+            }
+
+            .instruction-bar {
+                top: 10px;
+                max-width: calc(100% - 24px);
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            .settings-panel {
+                left: 10px;
+                right: 10px;
+                bottom: 10px;
+                justify-content: center;
+                gap: 9px 12px;
+                padding: 9px 10px;
+            }
+
+            .settings-control input[type="range"] {
+                width: 85px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            header {
+                align-items: flex-start;
+            }
+
+            h1 span {
+                display: none;
+            }
+
+            .dashboard {
+                gap: 7px;
+            }
+
+            .stat-box:nth-last-child(-n+2) {
+                display: none;
+            }
+
+            .session-button {
+                min-width: 96px;
+                padding: 8px 10px;
+            }
+
+            .settings-panel {
+                font-size: 10px;
+            }
+
+            .settings-control input[type="number"] {
+                width: 50px;
+            }
+        }
     </style>
-    <!-- Three.js Library -->
+
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Three.js OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
 </head>
 
 <body>
 
     <header>
         <h1>Spatial Rotation <span>PRO</span></h1>
+
         <div class="dashboard">
-            <a class="community-link" href="https://discord.gg/brain" target="_blank" rel="noopener noreferrer">Join MINDBUILDING Community</a>
-            <button class="btn session-button" id="btn-session-toggle">Start Session</button>
+            <a class="community-link"
+               href="https://discord.gg/brain"
+               target="_blank"
+               rel="noopener noreferrer">
+                Join MINDBUILDING Community
+            </a>
+
+            <button class="btn session-button" id="btn-session-toggle">
+                Start Session
+            </button>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-timer">00:12</div>
                 <div class="stat-label">Trial Time</div>
             </div>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-trial">1/30</div>
                 <div class="stat-label">Trial</div>
             </div>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-score">0</div>
                 <div class="stat-label">Matches</div>
             </div>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-acc">100%</div>
                 <div class="stat-label">Accuracy</div>
@@ -290,616 +399,2513 @@
     </header>
 
     <main>
+
         <div class="instruction-bar">
-            <strong>Task:</strong> Select the 2 shapes that are <em>identical under rotation</em>. Watch out for mirrors!
+            <strong>Task:</strong>
+            Select the 2 shapes that are
+            <em>identical under rotation</em>.
+            Watch out for mirrors!
         </div>
 
         <div id="canvas-container"></div>
 
         <div class="settings-panel">
+
             <label>
-                <input type="checkbox" id="chk-sound" checked> Sound Effects
+                <input type="checkbox" id="chk-sound" checked>
+                Sound Effects
             </label>
+
             <label>
-                <input type="checkbox" id="chk-speed" checked> Continuous Rotation
+                <input type="checkbox" id="chk-speed" checked>
+                Continuous Rotation
             </label>
+
             <label>
-                <input type="checkbox" id="chk-adaptive" checked> Adaptive Difficulty
+                <input type="checkbox" id="chk-adaptive" checked>
+                Adaptive Difficulty
             </label>
+
             <div class="settings-control">
                 <span>Rotation Speed</span>
-                <input type="range" id="rotation-speed" min="25" max="200" value="100" step="5" aria-label="Rotation speed">
-                <span class="settings-value" id="rotation-speed-value">100%</span>
+
+                <input
+                    type="range"
+                    id="rotation-speed"
+                    min="25"
+                    max="200"
+                    value="100"
+                    step="5"
+                    aria-label="Rotation speed"
+                >
+
+                <span class="settings-value" id="rotation-speed-value">
+                    100%
+                </span>
             </div>
+
             <div class="settings-control">
                 <span>Session (min)</span>
-                <input type="number" id="session-minutes" min="1" max="60" value="2" step="1" aria-label="Session duration in minutes">
+
+                <input
+                    type="number"
+                    id="session-minutes"
+                    min="1"
+                    max="60"
+                    value="2"
+                    step="1"
+                    aria-label="Session duration in minutes"
+                >
             </div>
+
         </div>
 
         <!-- Start Overlay -->
         <div class="overlay" id="start-overlay">
+
             <div class="modal">
+
                 <h2>Dynamic Pair Matching</h2>
+
                 <p>
-                    6 3D shapes will float and continuously spin in real-time. 
-                    Identify the two objects that have identical 3D geometries (ignoring rotation). 
+                    6 3D shapes will float and continuously spin in real-time.
+                    Identify the two objects that have identical 3D geometries
+                    (ignoring rotation).
                     Distractors include mirror reflections and distinct block paths.
                 </p>
-                <button class="btn" id="btn-start">Start Session</button>
+
+                <button class="btn" id="btn-start">
+                    Start Session
+                </button>
+
             </div>
+
         </div>
 
         <!-- Game Over Overlay -->
         <div class="overlay" id="end-overlay" style="display: none;">
+
             <div class="modal">
+
                 <h2>Session Complete</h2>
-                <p id="end-summary">Score: 0 | Accuracy: 0%</p>
-                <button class="btn" id="btn-restart">Play Again</button>
+
+                <p id="end-summary">
+                    Score: 0 | Accuracy: 0%
+                </p>
+
+                <button class="btn" id="btn-restart">
+                    Play Again
+                </button>
+
             </div>
+
         </div>
+
     </main>
 
     <script>
-        // --- Audio Synthesizer (Web Audio API) ---
+
+        // ============================================================
+        // AUDIO ENGINE
+        // ============================================================
+
         const AudioEngine = {
+
             ctx: null,
+
             init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+                if (!this.ctx) {
+                    this.ctx =
+                        new (window.AudioContext ||
+                            window.webkitAudioContext)();
+                }
+
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume().catch(() => {});
+                }
             },
+
             playTone(freq, duration, type = 'sine') {
-                if (!document.getElementById('chk-sound').checked || !this.ctx) return;
+
+                const soundCheckbox =
+                    document.getElementById('chk-sound');
+
+                if (
+                    !soundCheckbox ||
+                    !soundCheckbox.checked ||
+                    !this.ctx
+                ) {
+                    return;
+                }
+
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
+
                 osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.frequency.setValueAtTime(
+                    freq,
+                    this.ctx.currentTime
+                );
+
+                gain.gain.setValueAtTime(
+                    0.15,
+                    this.ctx.currentTime
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.001,
+                    this.ctx.currentTime + duration
+                );
+
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
+
                 osc.start();
                 osc.stop(this.ctx.currentTime + duration);
             },
+
             playSuccess() {
+
                 this.init();
-                this.playTone(523.25, 0.15); // C5
-                setTimeout(() => this.playTone(659.25, 0.25), 100); // E5
+
+                this.playTone(523.25, 0.15);
+
+                setTimeout(() => {
+                    this.playTone(659.25, 0.25);
+                }, 100);
             },
+
             playError() {
+
                 this.init();
-                this.playTone(180, 0.3, 'sawtooth');
+
+                this.playTone(
+                    180,
+                    0.3,
+                    'sawtooth'
+                );
             },
+
             playSelect() {
+
                 this.init();
-                this.playTone(440, 0.08);
+
+                this.playTone(
+                    440,
+                    0.08
+                );
             }
         };
 
-        // --- Session State ---
+
+        // ============================================================
+        // SESSION STATE
+        // ============================================================
+
         let sessionActive = false;
+
         let trialTimer = null;
         let sessionTimer = null;
+
         let trialTimeRemaining = 12;
         let sessionTimeRemaining = 120;
+
         let trialStartTime = 0;
         let trialNumber = 0;
+
         let score = 0;
         let totalAttempts = 0;
+
         let selectedShapes = [];
-        let shapesData = []; // Metadata for the 6 active shapes
+        let shapesData = [];
+
         let adaptiveLevel = 0;
         let adaptiveHistory = [];
+
         let currentTrialResolved = false;
+
         let roundTransitionTimeout = null;
+
         let baseRotationMultiplier = 1;
 
-        // --- Three.js Setup ---
-        const container = document.getElementById('canvas-container');
+
+        // ============================================================
+        // THREE.JS SETUP
+        // ============================================================
+
+        const container =
+            document.getElementById('canvas-container');
+
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#090d16');
 
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(0, 0, 22);
+        scene.background =
+            new THREE.Color('#090d16');
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
 
-        // Lighting Setup
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-        dirLight.position.set(20, 30, 20);
+        // ------------------------------------------------------------
+        // CAMERA
+        // ------------------------------------------------------------
+
+        const camera =
+            new THREE.PerspectiveCamera(
+                45,
+                Math.max(
+                    1,
+                    container.clientWidth
+                ) /
+                Math.max(
+                    1,
+                    container.clientHeight
+                ),
+                0.1,
+                1000
+            );
+
+        camera.position.set(
+            0,
+            0,
+            22
+        );
+
+
+        // ------------------------------------------------------------
+        // RENDERER
+        // ------------------------------------------------------------
+
+        const renderer =
+            new THREE.WebGLRenderer({
+                antialias: true
+            });
+
+        renderer.setSize(
+            container.clientWidth,
+            container.clientHeight
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                2
+            )
+        );
+
+        container.appendChild(
+            renderer.domElement
+        );
+
+
+        // ============================================================
+        // ORBIT CONTROLS
+        // ============================================================
+
+        /*
+         * OrbitControls handles:
+         *
+         * Desktop:
+         *   Left mouse   = orbit
+         *   Wheel        = zoom
+         *   Right mouse  = pan
+         *
+         * Touch:
+         *   One finger  = orbit
+         *   Two fingers = pan / zoom
+         *
+         * screenSpacePanning keeps panning intuitive for this
+         * front-facing spatial-training layout.
+         */
+
+        const controls =
+            new THREE.OrbitControls(
+                camera,
+                renderer.domElement
+            );
+
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+
+        controls.enableZoom = true;
+        controls.enablePan = true;
+
+        controls.screenSpacePanning = true;
+
+        controls.rotateSpeed = 0.55;
+        controls.zoomSpeed = 0.9;
+        controls.panSpeed = 0.8;
+
+        controls.minDistance = 8;
+        controls.maxDistance = 60;
+
+        controls.target.set(
+            0,
+            0,
+            0
+        );
+
+        controls.update();
+
+
+        // ============================================================
+        // LIGHTING
+        // ============================================================
+
+        scene.add(
+            new THREE.AmbientLight(
+                0xffffff,
+                0.5
+            )
+        );
+
+        const dirLight =
+            new THREE.DirectionalLight(
+                0xffffff,
+                0.7
+            );
+
+        dirLight.position.set(
+            20,
+            30,
+            20
+        );
+
         scene.add(dirLight);
-        const fillLight = new THREE.DirectionalLight(0x90b0d0, 0.4);
-        fillLight.position.set(-20, -10, -20);
+
+        const fillLight =
+            new THREE.DirectionalLight(
+                0x90b0d0,
+                0.4
+            );
+
+        fillLight.position.set(
+            -20,
+            -10,
+            -20
+        );
+
         scene.add(fillLight);
 
-        // Shared Geometry & Materials
-        const cubeGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-        const edgesGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
-        
-        const matDefault = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
-        const matSelected = new THREE.MeshLambertMaterial({ color: 0xf59e0b }); // Yellow highlight
-        const matCorrect = new THREE.MeshLambertMaterial({ color: 0x10b981 });  // Green
-        const matWrong = new THREE.MeshLambertMaterial({ color: 0xef4444 });    // Red
-        const edgeMat = new THREE.LineBasicMaterial({ color: 0x090d16, transparent: true, opacity: 0.6 });
 
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        // ============================================================
+        // SHARED GEOMETRY & MATERIALS
+        // ============================================================
 
-        // 3x2 Grid Offsets in Viewport Space
-        const gridPositions = [
-            { x: -7.5, y: 3.8, z: 0 },
-            { x: 0,    y: 3.8, z: 0 },
-            { x: 7.5,  y: 3.8, z: 0 },
-            { x: -7.5, y: -3.8, z: 0 },
-            { x: 0,    y: -3.8, z: 0 },
-            { x: 7.5,  y: -3.8, z: 0 }
-        ];
+        const cubeGeo =
+            new THREE.BoxGeometry(
+                0.96,
+                0.96,
+                0.96
+            );
 
-        // --- Algorithmic Path Generation ---
+        const edgesGeo =
+            new THREE.EdgesGeometry(
+                new THREE.BoxGeometry(
+                    1,
+                    1,
+                    1
+                )
+            );
+
+        const matDefault =
+            new THREE.MeshLambertMaterial({
+                color: 0xe2e8f0
+            });
+
+        const matSelected =
+            new THREE.MeshLambertMaterial({
+                color: 0xf59e0b
+            });
+
+        const matCorrect =
+            new THREE.MeshLambertMaterial({
+                color: 0x10b981
+            });
+
+        const matWrong =
+            new THREE.MeshLambertMaterial({
+                color: 0xef4444
+            });
+
+        const edgeMat =
+            new THREE.LineBasicMaterial({
+                color: 0x090d16,
+                transparent: true,
+                opacity: 0.6
+            });
+
+
+        // ============================================================
+        // RAYCASTING
+        // ============================================================
+
+        const raycaster =
+            new THREE.Raycaster();
+
+        const mouse =
+            new THREE.Vector2();
+
+
+        // ============================================================
+        // RESPONSIVE 3 x 2 WORLD LAYOUT
+        // ============================================================
+
+        /*
+         * The original implementation used:
+         *
+         *   x = -7.5, 0, +7.5
+         *   y = -3.8, +3.8
+         *
+         * Those values are not viewport-aware. On a narrow portrait
+         * display the perspective camera simply cannot see all three
+         * columns.
+         *
+         * Instead, the layout is calculated from the camera frustum.
+         *
+         * The camera remains perspective-based, but the grid spreads
+         * only as far as the currently visible world area allows.
+         */
+
+        let gridPositions = [];
+
+        let responsiveShapeLimit = 4.8;
+
+
+        function updateResponsiveLayout() {
+
+            const width =
+                Math.max(
+                    1,
+                    container.clientWidth
+                );
+
+            const height =
+                Math.max(
+                    1,
+                    container.clientHeight
+                );
+
+            const aspect =
+                width / height;
+
+
+            camera.aspect = aspect;
+
+            camera.updateProjectionMatrix();
+
+
+            /*
+             * Determine the visible world dimensions at the default
+             * reference distance.
+             */
+
+            const referenceDistance = 22;
+
+            const halfHeight =
+                referenceDistance *
+                Math.tan(
+                    THREE.MathUtils.degToRad(
+                        camera.fov * 0.5
+                    )
+                );
+
+            const halfWidth =
+                halfHeight * aspect;
+
+
+            /*
+             * Safe viewport area.
+             *
+             * The margins keep shapes away from the physical edge
+             * of the screen.
+             */
+
+            const safeW =
+                Math.max(
+                    3.2,
+                    halfWidth - 0.65
+                );
+
+            const safeH =
+                Math.max(
+                    3.0,
+                    halfHeight - 1.0
+                );
+
+
+            /*
+             * Horizontal spacing.
+             *
+             * On desktop this can approach the original wide layout.
+             * On portrait displays it automatically contracts.
+             */
+
+            const columnSpread =
+                Math.min(
+                    6.9,
+                    Math.max(
+                        2.25,
+                        safeW * 0.72
+                    )
+                );
+
+
+            /*
+             * Vertical spacing.
+             */
+
+            const rowSpread =
+                Math.min(
+                    3.65,
+                    Math.max(
+                        1.9,
+                        safeH * 0.48
+                    )
+                );
+
+
+            gridPositions = [
+
+                {
+                    x: -columnSpread,
+                    y: rowSpread,
+                    z: 0
+                },
+
+                {
+                    x: 0,
+                    y: rowSpread,
+                    z: 0
+                },
+
+                {
+                    x: columnSpread,
+                    y: rowSpread,
+                    z: 0
+                },
+
+                {
+                    x: -columnSpread,
+                    y: -rowSpread,
+                    z: 0
+                },
+
+                {
+                    x: 0,
+                    y: -rowSpread,
+                    z: 0
+                },
+
+                {
+                    x: columnSpread,
+                    y: -rowSpread,
+                    z: 0
+                }
+
+            ];
+
+
+            /*
+             * A generated structure can itself be several cubes wide.
+             *
+             * Therefore positioning alone is not enough.
+             *
+             * Calculate a responsive maximum display size so the
+             * generated structure remains inside its grid cell.
+             */
+
+            const horizontalCell =
+                (columnSpread * 2) / 3;
+
+            const verticalCell =
+                rowSpread * 2;
+
+
+            responsiveShapeLimit =
+                Math.min(
+
+                    4.8,
+
+                    Math.max(
+                        1.7,
+                        horizontalCell * 0.78
+                    ),
+
+                    Math.max(
+                        1.7,
+                        verticalCell * 0.70
+                    )
+
+                );
+
+
+            renderer.setSize(
+                width,
+                height,
+                false
+            );
+        }
+
+
+        updateResponsiveLayout();
+
+
+        // ============================================================
+        // ALGORITHMIC PATH GENERATION
+        // ============================================================
+
         function generateComplexPath(numBlocks) {
-            const positions = [[0, 0, 0]];
-            let currentPos = [0, 0, 0];
-            const axes = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
-            let currentDir = axes[Math.floor(Math.random() * axes.length)];
 
-            while (positions.length < numBlocks) {
-                // Shorter, more frequent turns keep high-complexity structures compact
-                // while still producing many 3D branches and directional changes.
-                let segLength = Math.floor(Math.random() * 2) + 1;
-                for (let i = 0; i < segLength && positions.length < numBlocks; i++) {
+            const positions = [
+                [0, 0, 0]
+            ];
+
+            let currentPos = [
+                0,
+                0,
+                0
+            ];
+
+            const axes = [
+
+                [1, 0, 0],
+                [-1, 0, 0],
+
+                [0, 1, 0],
+                [0, -1, 0],
+
+                [0, 0, 1],
+                [0, 0, -1]
+
+            ];
+
+            let currentDir =
+                axes[
+                    Math.floor(
+                        Math.random() *
+                        axes.length
+                    )
+                ];
+
+
+            while (
+                positions.length <
+                numBlocks
+            ) {
+
+                let segLength =
+                    Math.floor(
+                        Math.random() * 2
+                    ) + 1;
+
+
+                for (
+                    let i = 0;
+                    i < segLength &&
+                    positions.length < numBlocks;
+                    i++
+                ) {
+
                     const candidate = [
-                        currentPos[0] + currentDir[0],
-                        currentPos[1] + currentDir[1],
-                        currentPos[2] + currentDir[2]
+
+                        currentPos[0] +
+                        currentDir[0],
+
+                        currentPos[1] +
+                        currentDir[1],
+
+                        currentPos[2] +
+                        currentDir[2]
+
                     ];
 
-                    if (!positions.some(p => p[0] === candidate[0] && p[1] === candidate[1] && p[2] === candidate[2])) {
-                        currentPos = candidate;
-                        positions.push([...currentPos]);
+
+                    if (
+                        !positions.some(
+                            p =>
+                                p[0] === candidate[0] &&
+                                p[1] === candidate[1] &&
+                                p[2] === candidate[2]
+                        )
+                    ) {
+
+                        currentPos =
+                            candidate;
+
+                        positions.push([
+                            ...currentPos
+                        ]);
+
                     } else {
+
                         break;
+
                     }
                 }
 
-                const occupied = new Set(positions.map(p => p.join(',')));
-                const availableDirections = axes.filter(a => {
-                    const next = [
-                        currentPos[0] + a[0],
-                        currentPos[1] + a[1],
-                        currentPos[2] + a[2]
-                    ];
-                    return !occupied.has(next.join(','));
-                });
 
-                // Prefer turns, but allow a fallback to any open direction so
-                // generation cannot stall at high complexity.
-                const orthos = availableDirections.filter(a =>
-                    (a[0] * currentDir[0] + a[1] * currentDir[1] + a[2] * currentDir[2]) === 0
-                );
-                const candidates = orthos.length ? orthos : availableDirections;
+                const occupied =
+                    new Set(
+                        positions.map(
+                            p => p.join(',')
+                        )
+                    );
+
+
+                const availableDirections =
+                    axes.filter(a => {
+
+                        const next = [
+
+                            currentPos[0] + a[0],
+                            currentPos[1] + a[1],
+                            currentPos[2] + a[2]
+
+                        ];
+
+                        return !occupied.has(
+                            next.join(',')
+                        );
+
+                    });
+
+
+                const orthos =
+                    availableDirections.filter(a =>
+
+                        (
+                            a[0] * currentDir[0] +
+                            a[1] * currentDir[1] +
+                            a[2] * currentDir[2]
+                        ) === 0
+
+                    );
+
+
+                const candidates =
+                    orthos.length
+                        ? orthos
+                        : availableDirections;
+
 
                 if (!candidates.length) {
-                    // Rare fallback: restart the walk from a random existing block.
-                    const restart = positions[Math.floor(Math.random() * positions.length)];
-                    currentPos = [...restart];
-                    currentDir = axes[Math.floor(Math.random() * axes.length)];
+
+                    const restart =
+                        positions[
+                            Math.floor(
+                                Math.random() *
+                                positions.length
+                            )
+                        ];
+
+                    currentPos =
+                        [...restart];
+
+                    currentDir =
+                        axes[
+                            Math.floor(
+                                Math.random() *
+                                axes.length
+                            )
+                        ];
+
                     continue;
                 }
 
-                currentDir = candidates[Math.floor(Math.random() * candidates.length)];
+
+                currentDir =
+                    candidates[
+                        Math.floor(
+                            Math.random() *
+                            candidates.length
+                        )
+                    ];
             }
+
 
             return positions;
         }
 
-        function createShapeGroup(positions, material) {
-            const group = new THREE.Group();
+
+        // ============================================================
+        // SHAPE CREATION
+        // ============================================================
+
+        function createShapeGroup(
+            positions,
+            material
+        ) {
+
+            const group =
+                new THREE.Group();
+
+
             positions.forEach(pos => {
-                const mesh = new THREE.Mesh(cubeGeo, material);
-                mesh.position.set(...pos);
+
+                const mesh =
+                    new THREE.Mesh(
+                        cubeGeo,
+                        material
+                    );
+
+                mesh.position.set(
+                    ...pos
+                );
+
                 group.add(mesh);
 
-                const edges = new THREE.LineSegments(edgesGeo, edgeMat);
-                edges.position.set(...pos);
+
+                const edges =
+                    new THREE.LineSegments(
+                        edgesGeo,
+                        edgeMat
+                    );
+
+                edges.position.set(
+                    ...pos
+                );
+
                 group.add(edges);
+
             });
 
-            // Center geometry inside group
-            const box = new THREE.Box3().setFromObject(group);
-            const center = box.getCenter(new THREE.Vector3());
-            group.children.forEach(c => c.position.sub(center));
 
-            // Keep very complex structures visible in their grid cell without
-            // reducing the number of blocks that make the task difficult.
-            const centeredBox = new THREE.Box3().setFromObject(group);
-            const size = centeredBox.getSize(new THREE.Vector3());
-            const maxDimension = Math.max(size.x, size.y, size.z);
-            const maxDisplaySize = 5.0;
-            if (maxDimension > maxDisplaySize) {
-                group.scale.setScalar(maxDisplaySize / maxDimension);
+            /*
+             * Center the generated structure.
+             */
+
+            const box =
+                new THREE.Box3()
+                    .setFromObject(group);
+
+            const center =
+                box.getCenter(
+                    new THREE.Vector3()
+                );
+
+
+            group.children.forEach(c => {
+
+                c.position.sub(
+                    center
+                );
+
+            });
+
+
+            /*
+             * Responsive scaling.
+             *
+             * This replaces the original fixed 5.0 world-unit limit.
+             */
+
+            const centeredBox =
+                new THREE.Box3()
+                    .setFromObject(group);
+
+            const size =
+                centeredBox.getSize(
+                    new THREE.Vector3()
+                );
+
+            const maxDimension =
+                Math.max(
+                    size.x,
+                    size.y,
+                    size.z
+                );
+
+
+            const maxDisplaySize =
+                responsiveShapeLimit;
+
+
+            if (
+                maxDimension >
+                maxDisplaySize
+            ) {
+
+                group.scale.setScalar(
+                    maxDisplaySize /
+                    maxDimension
+                );
+
             }
+
 
             return group;
         }
 
-        // --- Round Construction Engine ---
+
+        // ============================================================
+        // ROUND CONSTRUCTION ENGINE
+        // ============================================================
+
         function clearShapes() {
-            shapesData.forEach(item => scene.remove(item.containerGroup));
+
+            shapesData.forEach(item => {
+
+                scene.remove(
+                    item.containerGroup
+                );
+
+            });
+
             shapesData = [];
+
             selectedShapes = [];
         }
 
+
         function getDifficultySettings() {
-            const adaptiveEnabled = document.getElementById('chk-adaptive').checked;
-            const manualSpeed = baseRotationMultiplier;
+
+            const adaptiveEnabled =
+                document
+                    .getElementById(
+                        'chk-adaptive'
+                    )
+                    .checked;
+
+            const manualSpeed =
+                baseRotationMultiplier;
+
 
             if (!adaptiveEnabled) {
+
                 return {
+
                     level: 0,
+
                     numCubes: 10,
-                    speedScale: 0.008 * manualSpeed,
+
+                    speedScale:
+                        0.008 *
+                        manualSpeed,
+
                     trialSeconds: 12
+
                 };
+
             }
 
-            // Adaptive mode changes structural complexity, rotation speed, and trial time.
+
             return {
-                level: adaptiveLevel,
-                numCubes: Math.min(10 + adaptiveLevel * 2, 30),
-                speedScale: (0.008 + adaptiveLevel * 0.0012) * manualSpeed,
-                trialSeconds: Math.max(5, 12 - adaptiveLevel * 0.7)
+
+                level:
+                    adaptiveLevel,
+
+                numCubes:
+                    Math.min(
+                        10 +
+                        adaptiveLevel * 2,
+                        30
+                    ),
+
+                speedScale:
+                    (
+                        0.008 +
+                        adaptiveLevel *
+                        0.0012
+                    ) *
+                    manualSpeed,
+
+                trialSeconds:
+                    Math.max(
+                        5,
+                        12 -
+                        adaptiveLevel *
+                        0.7
+                    )
+
             };
         }
 
-        function updateAdaptiveDifficulty(wasCorrect, responseMs, timedOut = false) {
-            if (!document.getElementById('chk-adaptive').checked) return;
 
-            const currentSettings = getDifficultySettings();
-            const responseRatio = timedOut ? 1 : Math.min(responseMs / (currentSettings.trialSeconds * 1000), 1);
+        function updateAdaptiveDifficulty(
+            wasCorrect,
+            responseMs,
+            timedOut = false
+        ) {
 
-            adaptiveHistory.push({ correct: wasCorrect, ratio: responseRatio, timedOut });
-            if (adaptiveHistory.length > 5) adaptiveHistory.shift();
-            if (adaptiveHistory.length < 3) return;
-
-            const correctRate = adaptiveHistory.filter(r => r.correct).length / adaptiveHistory.length;
-            const averageRatio = adaptiveHistory.reduce((sum, r) => sum + r.ratio, 0) / adaptiveHistory.length;
-            const recentTimeout = adaptiveHistory[adaptiveHistory.length - 1].timedOut;
-
-            if (correctRate >= 0.8 && averageRatio <= 0.70) {
-                adaptiveLevel = Math.min(adaptiveLevel + 1, 10);
-                adaptiveHistory = [];
-            } else if (recentTimeout || correctRate <= 0.40) {
-                adaptiveLevel = Math.max(adaptiveLevel - 1, 0);
-                adaptiveHistory = [];
-            }
-        }
-
-        function startTrialTimer() {
-            clearInterval(trialTimer);
-            const settings = getDifficultySettings();
-            trialTimeRemaining = settings.trialSeconds;
-            trialStartTime = performance.now();
-            currentTrialResolved = false;
-            updateDashboard();
-
-            trialTimer = setInterval(() => {
-                trialTimeRemaining = Math.max(0, trialTimeRemaining - 0.1);
-                updateDashboard();
-                if (trialTimeRemaining <= 0) {
-                    clearInterval(trialTimer);
-                    handleTrialTimeout();
-                }
-            }, 100);
-        }
-
-        function startSessionTimer() {
-            clearInterval(sessionTimer);
-            sessionTimer = setInterval(() => {
-                if (!sessionActive) return;
-                sessionTimeRemaining = Math.max(0, sessionTimeRemaining - 1);
-                updateDashboard();
-                if (sessionTimeRemaining <= 0) endSession();
-            }, 1000);
-        }
-
-        function handleTrialTimeout() {
-            if (!sessionActive || currentTrialResolved) return;
-            currentTrialResolved = true;
-            totalAttempts++;
-            updateAdaptiveDifficulty(false, getDifficultySettings().trialSeconds * 1000, true);
-            AudioEngine.playError();
-
-            // Show the correct pair briefly so the user receives immediate feedback.
-            const correctPair = shapesData.filter(s => s.matchId === 'TARGET_A');
-            correctPair.forEach(s => setShapeMaterial(s, matCorrect));
-            updateDashboard();
-
-            roundTransitionTimeout = setTimeout(() => {
-                if (sessionActive) advanceTrial();
-            }, 800);
-        }
-
-        function advanceTrial() {
-            if (!sessionActive) return;
-            if (sessionTimeRemaining <= 0) {
-                endSession();
+            if (
+                !document
+                    .getElementById(
+                        'chk-adaptive'
+                    )
+                    .checked
+            ) {
                 return;
             }
+
+
+            const currentSettings =
+                getDifficultySettings();
+
+
+            const responseRatio =
+                timedOut
+                    ? 1
+                    : Math.min(
+                        responseMs /
+                        (
+                            currentSettings.trialSeconds *
+                            1000
+                        ),
+                        1
+                    );
+
+
+            adaptiveHistory.push({
+
+                correct:
+                    wasCorrect,
+
+                ratio:
+                    responseRatio,
+
+                timedOut
+
+            });
+
+
+            if (
+                adaptiveHistory.length >
+                5
+            ) {
+                adaptiveHistory.shift();
+            }
+
+
+            if (
+                adaptiveHistory.length <
+                3
+            ) {
+                return;
+            }
+
+
+            const correctRate =
+                adaptiveHistory.filter(
+                    r => r.correct
+                ).length /
+                adaptiveHistory.length;
+
+
+            const averageRatio =
+                adaptiveHistory.reduce(
+                    (sum, r) =>
+                        sum + r.ratio,
+                    0
+                ) /
+                adaptiveHistory.length;
+
+
+            const recentTimeout =
+                adaptiveHistory[
+                    adaptiveHistory.length - 1
+                ].timedOut;
+
+
+            if (
+                correctRate >= 0.8 &&
+                averageRatio <= 0.70
+            ) {
+
+                adaptiveLevel =
+                    Math.min(
+                        adaptiveLevel + 1,
+                        10
+                    );
+
+                adaptiveHistory = [];
+
+            } else if (
+                recentTimeout ||
+                correctRate <= 0.40
+            ) {
+
+                adaptiveLevel =
+                    Math.max(
+                        adaptiveLevel - 1,
+                        0
+                    );
+
+                adaptiveHistory = [];
+            }
+        }
+
+
+        function startTrialTimer() {
+
+            clearInterval(
+                trialTimer
+            );
+
+
+            const settings =
+                getDifficultySettings();
+
+
+            trialTimeRemaining =
+                settings.trialSeconds;
+
+
+            trialStartTime =
+                performance.now();
+
+
+            currentTrialResolved =
+                false;
+
+
+            updateDashboard();
+
+
+            trialTimer =
+                setInterval(() => {
+
+                    trialTimeRemaining =
+                        Math.max(
+                            0,
+                            trialTimeRemaining -
+                            0.1
+                        );
+
+
+                    updateDashboard();
+
+
+                    if (
+                        trialTimeRemaining <= 0
+                    ) {
+
+                        clearInterval(
+                            trialTimer
+                        );
+
+                        handleTrialTimeout();
+                    }
+
+                }, 100);
+        }
+
+
+        function startSessionTimer() {
+
+            clearInterval(
+                sessionTimer
+            );
+
+
+            sessionTimer =
+                setInterval(() => {
+
+                    if (!sessionActive) {
+                        return;
+                    }
+
+
+                    sessionTimeRemaining =
+                        Math.max(
+                            0,
+                            sessionTimeRemaining - 1
+                        );
+
+
+                    updateDashboard();
+
+
+                    if (
+                        sessionTimeRemaining <= 0
+                    ) {
+                        endSession();
+                    }
+
+                }, 1000);
+        }
+
+
+        function handleTrialTimeout() {
+
+            if (
+                !sessionActive ||
+                currentTrialResolved
+            ) {
+                return;
+            }
+
+
+            currentTrialResolved =
+                true;
+
+
+            totalAttempts++;
+
+
+            updateAdaptiveDifficulty(
+                false,
+                getDifficultySettings()
+                    .trialSeconds * 1000,
+                true
+            );
+
+
+            AudioEngine.playError();
+
+
+            const correctPair =
+                shapesData.filter(
+                    s =>
+                        s.matchId ===
+                        'TARGET_A'
+                );
+
+
+            correctPair.forEach(
+                s =>
+                    setShapeMaterial(
+                        s,
+                        matCorrect
+                    )
+            );
+
+
+            updateDashboard();
+
+
+            roundTransitionTimeout =
+                setTimeout(() => {
+
+                    if (sessionActive) {
+                        advanceTrial();
+                    }
+
+                }, 800);
+        }
+
+
+        function advanceTrial() {
+
+            if (!sessionActive) {
+                return;
+            }
+
+
+            if (
+                sessionTimeRemaining <= 0
+            ) {
+
+                endSession();
+
+                return;
+            }
+
+
             trialNumber++;
+
             spawnRound();
         }
 
+
         function spawnRound() {
+
             clearShapes();
-            clearTimeout(roundTransitionTimeout);
 
-            const settings = getDifficultySettings();
-            const numCubes = settings.numCubes;
+            clearTimeout(
+                roundTransitionTimeout
+            );
 
-            // Generate geometries
-            const pathA = generateComplexPath(numCubes);
-            const pathAMirror = pathA.map(p => [-p[0], p[1], p[2]]); // Chiral mirror distractor
-            const pathB = generateComplexPath(numCubes);
-            const pathBMirror = pathB.map(p => [-p[0], p[1], p[2]]);
-            const pathC = generateComplexPath(numCubes);
+
+            const settings =
+                getDifficultySettings();
+
+
+            const numCubes =
+                settings.numCubes;
+
+
+            const pathA =
+                generateComplexPath(
+                    numCubes
+                );
+
+
+            const pathAMirror =
+                pathA.map(
+                    p => [
+                        -p[0],
+                        p[1],
+                        p[2]
+                    ]
+                );
+
+
+            const pathB =
+                generateComplexPath(
+                    numCubes
+                );
+
+
+            const pathBMirror =
+                pathB.map(
+                    p => [
+                        -p[0],
+                        p[1],
+                        p[2]
+                    ]
+                );
+
+
+            const pathC =
+                generateComplexPath(
+                    numCubes
+                );
+
 
             const pathDefs = [
-                { path: pathA, matchId: 'TARGET_A' },
-                { path: pathA, matchId: 'TARGET_A' }, // Exact pair match
-                { path: pathAMirror, matchId: 'MIRROR_A' },
-                { path: pathB, matchId: 'DISTRACTOR_B' },
-                { path: pathBMirror, matchId: 'MIRROR_B' },
-                { path: pathC, matchId: 'DISTRACTOR_C' }
+
+                {
+                    path: pathA,
+                    matchId: 'TARGET_A'
+                },
+
+                {
+                    path: pathA,
+                    matchId: 'TARGET_A'
+                },
+
+                {
+                    path: pathAMirror,
+                    matchId: 'MIRROR_A'
+                },
+
+                {
+                    path: pathB,
+                    matchId: 'DISTRACTOR_B'
+                },
+
+                {
+                    path: pathBMirror,
+                    matchId: 'MIRROR_B'
+                },
+
+                {
+                    path: pathC,
+                    matchId: 'DISTRACTOR_C'
+                }
+
             ];
 
-            // Shuffle grid slots
-            pathDefs.sort(() => Math.random() - 0.5);
 
-            pathDefs.forEach((def, index) => {
-                const innerGroup = createShapeGroup(def.path, matDefault);
-                const containerGroup = new THREE.Group();
-                containerGroup.add(innerGroup);
+            /*
+             * Shuffle slots while preserving the six responsive
+             * positions calculated above.
+             */
 
-                // Position in grid
-                const pos = gridPositions[index];
-                containerGroup.position.set(pos.x, pos.y, pos.z);
+            pathDefs.sort(
+                () =>
+                    Math.random() -
+                    0.5
+            );
 
-                // Initial random orientation
-                innerGroup.rotation.set(
-                    Math.random() * Math.PI * 2,
-                    Math.random() * Math.PI * 2,
-                    Math.random() * Math.PI * 2
-                );
 
-                // Multi-axis rotation velocity scales with adaptive difficulty.
-                const speedScale = settings.speedScale;
-                const rotVelocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale
-                );
+            pathDefs.forEach(
+                (def, index) => {
 
-                scene.add(containerGroup);
+                    const innerGroup =
+                        createShapeGroup(
+                            def.path,
+                            matDefault
+                        );
 
-                shapesData.push({
-                    id: index,
-                    matchId: def.matchId,
-                    containerGroup,
-                    innerGroup,
-                    rotVelocity,
-                    meshes: innerGroup.children.filter(c => c.isMesh)
-                });
-            });
+
+                    const containerGroup =
+                        new THREE.Group();
+
+
+                    containerGroup.add(
+                        innerGroup
+                    );
+
+
+                    const pos =
+                        gridPositions[index];
+
+
+                    containerGroup.position.set(
+                        pos.x,
+                        pos.y,
+                        pos.z
+                    );
+
+
+                    /*
+                     * Initial random orientation.
+                     */
+
+                    innerGroup.rotation.set(
+
+                        Math.random() *
+                        Math.PI * 2,
+
+                        Math.random() *
+                        Math.PI * 2,
+
+                        Math.random() *
+                        Math.PI * 2
+
+                    );
+
+
+                    /*
+                     * Multi-axis rotation velocity.
+                     */
+
+                    const speedScale =
+                        settings.speedScale;
+
+
+                    const rotVelocity =
+                        new THREE.Vector3(
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale,
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale,
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale
+
+                        );
+
+
+                    scene.add(
+                        containerGroup
+                    );
+
+
+                    shapesData.push({
+
+                        id:
+                            index,
+
+                        matchId:
+                            def.matchId,
+
+                        containerGroup,
+
+                        innerGroup,
+
+                        rotVelocity,
+
+                        meshes:
+                            innerGroup.children
+                                .filter(
+                                    c => c.isMesh
+                                )
+
+                    });
+
+                }
+            );
+
 
             startTrialTimer();
         }
 
-        // --- User Interaction & Selection Logic ---
-        function onPointerDown(event) {
-            if (!sessionActive || selectedShapes.length >= 2) return;
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        // ============================================================
+        // USER INTERACTION / RAYCASTING
+        // ============================================================
 
-            raycaster.setFromCamera(mouse, camera);
+        /*
+         * IMPORTANT:
+         *
+         * Previously selection happened immediately on pointerdown.
+         *
+         * That conflicts with OrbitControls because starting a drag
+         * would also immediately raycast/select a shape.
+         *
+         * The interaction below distinguishes:
+         *
+         *   tap/click  -> selection
+         *   drag       -> OrbitControls interaction
+         *
+         * A small 6px movement tolerance is used for touchscreens.
+         */
 
-            // Collect all meshes for raycasting
-            let allMeshes = [];
-            shapesData.forEach(s => allMeshes.push(...s.meshes));
+        let pointerDownPosition = null;
 
-            const intersects = raycaster.intersectObjects(allMeshes);
+        let pointerDownTime = 0;
 
-            if (intersects.length > 0) {
-                const hitMesh = intersects[0].object;
-                // Find parent shape container
-                const targetShape = shapesData.find(s => s.innerGroup.children.includes(hitMesh));
+        let pointerDragged = false;
 
-                if (targetShape && !selectedShapes.includes(targetShape)) {
-                    AudioEngine.playSelect();
-                    setShapeMaterial(targetShape, matSelected);
-                    selectedShapes.push(targetShape);
 
-                    if (selectedShapes.length === 2) {
-                        evaluateSelection();
-                    }
+        function updatePointerCoordinates(event) {
+
+            const rect =
+                renderer.domElement
+                    .getBoundingClientRect();
+
+
+            mouse.x =
+                (
+                    (
+                        event.clientX -
+                        rect.left
+                    ) /
+                    rect.width
+                ) * 2 - 1;
+
+
+            mouse.y =
+                -(
+                    (
+                        event.clientY -
+                        rect.top
+                    ) /
+                    rect.height
+                ) * 2 + 1;
+        }
+
+
+        function trySelectAtPointer(event) {
+
+            if (
+                !sessionActive ||
+                selectedShapes.length >= 2 ||
+                pointerDragged
+            ) {
+                return;
+            }
+
+
+            updatePointerCoordinates(
+                event
+            );
+
+
+            raycaster.setFromCamera(
+                mouse,
+                camera
+            );
+
+
+            const allMeshes = [];
+
+
+            shapesData.forEach(
+                s => {
+
+                    allMeshes.push(
+                        ...s.meshes
+                    );
+
+                }
+            );
+
+
+            const intersects =
+                raycaster.intersectObjects(
+                    allMeshes,
+                    false
+                );
+
+
+            if (!intersects.length) {
+                return;
+            }
+
+
+            const hitMesh =
+                intersects[0].object;
+
+
+            const targetShape =
+                shapesData.find(
+                    s =>
+                        s.meshes.includes(
+                            hitMesh
+                        )
+                );
+
+
+            if (
+                targetShape &&
+                !selectedShapes.includes(
+                    targetShape
+                )
+            ) {
+
+                AudioEngine.playSelect();
+
+
+                setShapeMaterial(
+                    targetShape,
+                    matSelected
+                );
+
+
+                selectedShapes.push(
+                    targetShape
+                );
+
+
+                if (
+                    selectedShapes.length === 2
+                ) {
+
+                    evaluateSelection();
                 }
             }
         }
 
-        function setShapeMaterial(shapeItem, material) {
-            shapeItem.meshes.forEach(m => m.material = material);
+
+        function onPointerDown(event) {
+
+            pointerDownPosition = {
+
+                x: event.clientX,
+
+                y: event.clientY
+
+            };
+
+
+            pointerDownTime =
+                performance.now();
+
+
+            pointerDragged = false;
         }
 
-        function evaluateSelection() {
-            if (currentTrialResolved) return;
-            currentTrialResolved = true;
-            clearInterval(trialTimer);
 
-            totalAttempts++;
-            const responseMs = performance.now() - trialStartTime;
-            const [shape1, shape2] = selectedShapes;
+        function onPointerMove(event) {
 
-            const isMatch = (shape1.matchId === 'TARGET_A' && shape2.matchId === 'TARGET_A');
-            updateAdaptiveDifficulty(isMatch, responseMs, false);
+            if (
+                !pointerDownPosition
+            ) {
+                return;
+            }
 
-            if (isMatch) {
-                AudioEngine.playSuccess();
-                setShapeMaterial(shape1, matCorrect);
-                setShapeMaterial(shape2, matCorrect);
-                score++;
-                updateDashboard();
 
-                roundTransitionTimeout = setTimeout(() => {
-                    if (sessionActive) advanceTrial();
-                }, 600);
-            } else {
-                AudioEngine.playError();
-                setShapeMaterial(shape1, matWrong);
-                setShapeMaterial(shape2, matWrong);
-                updateDashboard();
+            const dx =
+                event.clientX -
+                pointerDownPosition.x;
 
-                // Highlight correct pair as feedback
-                const correctPair = shapesData.filter(s => s.matchId === 'TARGET_A');
-                correctPair.forEach(s => setShapeMaterial(s, matCorrect));
 
-                roundTransitionTimeout = setTimeout(() => {
-                    if (sessionActive) advanceTrial();
-                }, 1000);
+            const dy =
+                event.clientY -
+                pointerDownPosition.y;
+
+
+            /*
+             * 6px squared movement threshold.
+             *
+             * This prevents tiny touchscreen movement from being
+             * interpreted as a pan instead of a tap.
+             */
+
+            if (
+                (
+                    dx * dx +
+                    dy * dy
+                ) > 36
+            ) {
+
+                pointerDragged = true;
             }
         }
 
-        // --- Dashboard & Timer ---
-        function updateDashboard() {
-            document.getElementById('stat-score').innerText = score;
-            const acc = totalAttempts === 0 ? 100 : Math.round((score / totalAttempts) * 100);
-            document.getElementById('stat-acc').innerText = `${acc}%`;
 
-            const trialMins = Math.floor(trialTimeRemaining / 60).toString().padStart(2, '0');
-            const trialSecs = Math.floor(trialTimeRemaining % 60).toString().padStart(2, '0');
-            document.getElementById('stat-timer').innerText = `${trialMins}:${trialSecs}`;
+        function onPointerUp(event) {
 
-            const sessionMins = Math.floor(sessionTimeRemaining / 60).toString().padStart(2, '0');
-            const sessionSecs = Math.floor(sessionTimeRemaining % 60).toString().padStart(2, '0');
-            document.getElementById('stat-trial').innerText = `#${trialNumber} • ${sessionMins}:${sessionSecs}`;
+            if (
+                !pointerDownPosition
+            ) {
+                return;
+            }
+
+
+            const elapsed =
+                performance.now() -
+                pointerDownTime;
+
+
+            const wasClick =
+                !pointerDragged &&
+                elapsed < 700;
+
+
+            pointerDownPosition =
+                null;
+
+
+            if (wasClick) {
+
+                trySelectAtPointer(
+                    event
+                );
+            }
+
+
+            pointerDragged = false;
         }
+
+
+        function setShapeMaterial(
+            shapeItem,
+            material
+        ) {
+
+            shapeItem.meshes.forEach(
+                mesh => {
+
+                    mesh.material =
+                        material;
+
+                }
+            );
+        }
+
+
+        // ============================================================
+        // SELECTION EVALUATION
+        // ============================================================
+
+        function evaluateSelection() {
+
+            if (
+                currentTrialResolved
+            ) {
+                return;
+            }
+
+
+            currentTrialResolved =
+                true;
+
+
+            clearInterval(
+                trialTimer
+            );
+
+
+            totalAttempts++;
+
+
+            const responseMs =
+                performance.now() -
+                trialStartTime;
+
+
+            const [
+                shape1,
+                shape2
+            ] = selectedShapes;
+
+
+            const isMatch =
+                (
+                    shape1.matchId ===
+                    'TARGET_A'
+                ) &&
+                (
+                    shape2.matchId ===
+                    'TARGET_A'
+                );
+
+
+            updateAdaptiveDifficulty(
+                isMatch,
+                responseMs,
+                false
+            );
+
+
+            if (isMatch) {
+
+                AudioEngine.playSuccess();
+
+
+                setShapeMaterial(
+                    shape1,
+                    matCorrect
+                );
+
+
+                setShapeMaterial(
+                    shape2,
+                    matCorrect
+                );
+
+
+                score++;
+
+
+                updateDashboard();
+
+
+                roundTransitionTimeout =
+                    setTimeout(() => {
+
+                        if (sessionActive) {
+                            advanceTrial();
+                        }
+
+                    }, 600);
+
+            } else {
+
+                AudioEngine.playError();
+
+
+                setShapeMaterial(
+                    shape1,
+                    matWrong
+                );
+
+
+                setShapeMaterial(
+                    shape2,
+                    matWrong
+                );
+
+
+                updateDashboard();
+
+
+                const correctPair =
+                    shapesData.filter(
+                        s =>
+                            s.matchId ===
+                            'TARGET_A'
+                    );
+
+
+                correctPair.forEach(
+                    s =>
+                        setShapeMaterial(
+                            s,
+                            matCorrect
+                        )
+                );
+
+
+                roundTransitionTimeout =
+                    setTimeout(() => {
+
+                        if (sessionActive) {
+                            advanceTrial();
+                        }
+
+                    }, 1000);
+            }
+        }
+
+
+        // ============================================================
+        // DASHBOARD
+        // ============================================================
+
+        function updateDashboard() {
+
+            document
+                .getElementById(
+                    'stat-score'
+                )
+                .innerText =
+                score;
+
+
+            const acc =
+                totalAttempts === 0
+                    ? 100
+                    : Math.round(
+                        (
+                            score /
+                            totalAttempts
+                        ) * 100
+                    );
+
+
+            document
+                .getElementById(
+                    'stat-acc'
+                )
+                .innerText =
+                `${acc}%`;
+
+
+            const trialMins =
+                Math.floor(
+                    trialTimeRemaining /
+                    60
+                )
+                .toString()
+                .padStart(2, '0');
+
+
+            const trialSecs =
+                Math.floor(
+                    trialTimeRemaining %
+                    60
+                )
+                .toString()
+                .padStart(2, '0');
+
+
+            document
+                .getElementById(
+                    'stat-timer'
+                )
+                .innerText =
+                `${trialMins}:${trialSecs}`;
+
+
+            const sessionMins =
+                Math.floor(
+                    sessionTimeRemaining /
+                    60
+                )
+                .toString()
+                .padStart(2, '0');
+
+
+            const sessionSecs =
+                Math.floor(
+                    sessionTimeRemaining %
+                    60
+                )
+                .toString()
+                .padStart(2, '0');
+
+
+            document
+                .getElementById(
+                    'stat-trial'
+                )
+                .innerText =
+                `#${trialNumber} • ${sessionMins}:${sessionSecs}`;
+        }
+
 
         function updateRotationSpeedLabel() {
-            const slider = document.getElementById('rotation-speed');
-            baseRotationMultiplier = Number(slider.value) / 100;
-            document.getElementById('rotation-speed-value').innerText = `${slider.value}%`;
+
+            const slider =
+                document.getElementById(
+                    'rotation-speed'
+                );
+
+
+            baseRotationMultiplier =
+                Number(
+                    slider.value
+                ) / 100;
+
+
+            document
+                .getElementById(
+                    'rotation-speed-value'
+                )
+                .innerText =
+                `${slider.value}%`;
         }
 
-        // --- Start / Stop Session ---
-        function startSession() {
-            AudioEngine.init();
-            sessionActive = true;
-            score = 0;
-            totalAttempts = 0;
-            trialNumber = 0;
-            adaptiveLevel = 0;
-            adaptiveHistory = [];
-            currentTrialResolved = false;
-            clearInterval(trialTimer);
-            clearInterval(sessionTimer);
-            clearTimeout(roundTransitionTimeout);
 
-            const minutesInput = document.getElementById('session-minutes');
-            let minutes = Number(minutesInput.value);
-            if (!Number.isFinite(minutes)) minutes = 2;
-            minutes = Math.max(1, Math.min(60, Math.round(minutes)));
-            minutesInput.value = minutes;
-            sessionTimeRemaining = minutes * 60;
+        // ============================================================
+        // START / STOP SESSION
+        // ============================================================
+
+        function startSession() {
+
+            AudioEngine.init();
+
+
+            sessionActive = true;
+
+
+            score = 0;
+
+            totalAttempts = 0;
+
+            trialNumber = 0;
+
+            adaptiveLevel = 0;
+
+            adaptiveHistory = [];
+
+            currentTrialResolved =
+                false;
+
+
+            clearInterval(
+                trialTimer
+            );
+
+            clearInterval(
+                sessionTimer
+            );
+
+            clearTimeout(
+                roundTransitionTimeout
+            );
+
+
+            const minutesInput =
+                document.getElementById(
+                    'session-minutes'
+                );
+
+
+            let minutes =
+                Number(
+                    minutesInput.value
+                );
+
+
+            if (
+                !Number.isFinite(minutes)
+            ) {
+                minutes = 2;
+            }
+
+
+            minutes =
+                Math.max(
+                    1,
+                    Math.min(
+                        60,
+                        Math.round(minutes)
+                    )
+                );
+
+
+            minutesInput.value =
+                minutes;
+
+
+            sessionTimeRemaining =
+                minutes * 60;
+
 
             updateDashboard();
-            document.getElementById('start-overlay').style.display = 'none';
-            document.getElementById('end-overlay').style.display = 'none';
-            document.getElementById('btn-session-toggle').innerText = 'Stop Session';
+
+
+            document
+                .getElementById(
+                    'start-overlay'
+                )
+                .style.display =
+                'none';
+
+
+            document
+                .getElementById(
+                    'end-overlay'
+                )
+                .style.display =
+                'none';
+
+
+            document
+                .getElementById(
+                    'btn-session-toggle'
+                )
+                .innerText =
+                'Stop Session';
+
 
             startSessionTimer();
+
             advanceTrial();
         }
 
+
         function stopSession() {
-            if (!sessionActive) return;
+
+            if (!sessionActive) {
+                return;
+            }
+
             endSession();
         }
 
+
         function endSession() {
+
             sessionActive = false;
-            clearInterval(trialTimer);
-            clearInterval(sessionTimer);
-            clearTimeout(roundTransitionTimeout);
+
+
+            clearInterval(
+                trialTimer
+            );
+
+            clearInterval(
+                sessionTimer
+            );
+
+            clearTimeout(
+                roundTransitionTimeout
+            );
+
+
             clearShapes();
 
-            const acc = totalAttempts === 0 ? 0 : Math.round((score / totalAttempts) * 100);
-            const minutesInput = document.getElementById('session-minutes');
-            const configuredMinutes = Math.max(1, Math.min(60, Number(minutesInput.value) || 2));
-            const completedSeconds = configuredMinutes * 60 - sessionTimeRemaining;
-            const completedMins = Math.floor(Math.max(0, completedSeconds) / 60);
-            const completedSecs = Math.floor(Math.max(0, completedSeconds) % 60).toString().padStart(2, '0');
 
-            document.getElementById('end-summary').innerText = `Total Solved: ${score} | Accuracy: ${acc}% | Trials: ${totalAttempts} | Time: ${completedMins}:${completedSecs}`;
-            document.getElementById('end-overlay').style.display = 'flex';
-            document.getElementById('btn-session-toggle').innerText = 'Start Session';
+            const acc =
+                totalAttempts === 0
+                    ? 0
+                    : Math.round(
+                        (
+                            score /
+                            totalAttempts
+                        ) * 100
+                    );
+
+
+            const minutesInput =
+                document.getElementById(
+                    'session-minutes'
+                );
+
+
+            const configuredMinutes =
+                Math.max(
+                    1,
+                    Math.min(
+                        60,
+                        Number(
+                            minutesInput.value
+                        ) || 2
+                    )
+                );
+
+
+            const completedSeconds =
+                configuredMinutes * 60 -
+                sessionTimeRemaining;
+
+
+            const completedMins =
+                Math.floor(
+                    Math.max(
+                        0,
+                        completedSeconds
+                    ) / 60
+                );
+
+
+            const completedSecs =
+                Math.floor(
+                    Math.max(
+                        0,
+                        completedSeconds
+                    ) % 60
+                )
+                .toString()
+                .padStart(2, '0');
+
+
+            document
+                .getElementById(
+                    'end-summary'
+                )
+                .innerText =
+                `Total Solved: ${score} | Accuracy: ${acc}% | Trials: ${totalAttempts} | Time: ${completedMins}:${completedSecs}`;
+
+
+            document
+                .getElementById(
+                    'end-overlay'
+                )
+                .style.display =
+                'flex';
+
+
+            document
+                .getElementById(
+                    'btn-session-toggle'
+                )
+                .innerText =
+                'Start Session';
         }
 
-        // --- Main Render Loop ---
-        const enableRotationChk = document.getElementById('chk-speed');
+
+        // ============================================================
+        // MAIN RENDER LOOP
+        // ============================================================
+
+        const enableRotationChk =
+            document.getElementById(
+                'chk-speed'
+            );
+
 
         function animate() {
-            requestAnimationFrame(animate);
 
-            // Continuous Rotation Engine
-            if (enableRotationChk.checked) {
-                const currentSpeedMultiplier = Number(document.getElementById('rotation-speed').value) / 100;
-                shapesData.forEach(item => {
-                    item.innerGroup.rotation.x += item.rotVelocity.x * currentSpeedMultiplier;
-                    item.innerGroup.rotation.y += item.rotVelocity.y * currentSpeedMultiplier;
-                    item.innerGroup.rotation.z += item.rotVelocity.z * currentSpeedMultiplier;
-                });
+            requestAnimationFrame(
+                animate
+            );
+
+
+            /*
+             * Continuous rotation engine.
+             */
+
+            if (
+                enableRotationChk.checked
+            ) {
+
+                const currentSpeedMultiplier =
+                    Number(
+                        document.getElementById(
+                            'rotation-speed'
+                        ).value
+                    ) / 100;
+
+
+                shapesData.forEach(
+                    item => {
+
+                        item.innerGroup.rotation.x +=
+                            item.rotVelocity.x *
+                            currentSpeedMultiplier;
+
+
+                        item.innerGroup.rotation.y +=
+                            item.rotVelocity.y *
+                            currentSpeedMultiplier;
+
+
+                        item.innerGroup.rotation.z +=
+                            item.rotVelocity.z *
+                            currentSpeedMultiplier;
+
+                    }
+                );
             }
 
-            renderer.render(scene, camera);
+
+            /*
+             * Required by OrbitControls when damping is enabled.
+             */
+
+            controls.update();
+
+
+            renderer.render(
+                scene,
+                camera
+            );
         }
 
-        // --- Event Listeners & Responsiveness ---
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
 
-        renderer.domElement.addEventListener('pointerdown', onPointerDown);
-        document.getElementById('btn-start').addEventListener('click', startSession);
-        document.getElementById('btn-restart').addEventListener('click', startSession);
+        // ============================================================
+        // RESPONSIVE RESIZE
+        // ============================================================
 
-        document.getElementById('btn-session-toggle').addEventListener('click', () => {
-            if (sessionActive) {
-                stopSession();
-            } else {
-                startSession();
+        window.addEventListener(
+            'resize',
+            () => {
+
+                updateResponsiveLayout();
+
+
+                /*
+                 * Reposition active shapes into the newly calculated
+                 * six grid slots.
+                 *
+                 * Their current rotations, generated geometries,
+                 * trial state, and selection state are preserved.
+                 */
+
+                shapesData.forEach(
+                    (item, index) => {
+
+                        const pos =
+                            gridPositions[index];
+
+
+                        if (pos) {
+
+                            item.containerGroup.position.set(
+
+                                pos.x,
+                                pos.y,
+                                pos.z
+
+                            );
+
+                        }
+
+                    }
+                );
+
             }
-        });
+        );
 
-        document.getElementById('rotation-speed').addEventListener('input', updateRotationSpeedLabel);
 
-        document.getElementById('session-minutes').addEventListener('change', (event) => {
-            let value = Number(event.target.value);
-            if (!Number.isFinite(value)) value = 2;
-            value = Math.max(1, Math.min(60, Math.round(value)));
-            event.target.value = value;
-        });
+        // ============================================================
+        // POINTER EVENTS
+        // ============================================================
+
+        renderer.domElement.addEventListener(
+            'pointerdown',
+            onPointerDown,
+            {
+                passive: true
+            }
+        );
+
+
+        renderer.domElement.addEventListener(
+            'pointermove',
+            onPointerMove,
+            {
+                passive: true
+            }
+        );
+
+
+        renderer.domElement.addEventListener(
+            'pointerup',
+            onPointerUp,
+            {
+                passive: true
+            }
+        );
+
+
+        renderer.domElement.addEventListener(
+            'pointercancel',
+            () => {
+
+                pointerDownPosition =
+                    null;
+
+                pointerDragged =
+                    false;
+
+            },
+            {
+                passive: true
+            }
+        );
+
+
+        // ============================================================
+        // UI EVENT LISTENERS
+        // ============================================================
+
+        document
+            .getElementById(
+                'btn-start'
+            )
+            .addEventListener(
+                'click',
+                startSession
+            );
+
+
+        document
+            .getElementById(
+                'btn-restart'
+            )
+            .addEventListener(
+                'click',
+                startSession
+            );
+
+
+        document
+            .getElementById(
+                'btn-session-toggle'
+            )
+            .addEventListener(
+                'click',
+                () => {
+
+                    if (sessionActive) {
+                        stopSession();
+                    } else {
+                        startSession();
+                    }
+
+                }
+            );
+
+
+        document
+            .getElementById(
+                'rotation-speed'
+            )
+            .addEventListener(
+                'input',
+                updateRotationSpeedLabel
+            );
+
+
+        document
+            .getElementById(
+                'session-minutes'
+            )
+            .addEventListener(
+                'change',
+                event => {
+
+                    let value =
+                        Number(
+                            event.target.value
+                        );
+
+
+                    if (
+                        !Number.isFinite(value)
+                    ) {
+                        value = 2;
+                    }
+
+
+                    value =
+                        Math.max(
+                            1,
+                            Math.min(
+                                60,
+                                Math.round(value)
+                            )
+                        );
+
+
+                    event.target.value =
+                        value;
+
+                }
+            );
+
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
 
         updateRotationSpeedLabel();
+
         updateDashboard();
 
-        // Init frame
         animate();
+
     </script>
+
 </body>
 
 </html>
+```
