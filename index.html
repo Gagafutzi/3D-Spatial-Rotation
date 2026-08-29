@@ -209,6 +209,7 @@
             accent-color: var(--accent);
         }
     </style>
+
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -217,23 +218,34 @@
 
     <header>
         <h1>Spatial Rotation <span>PRO</span></h1>
+
         <div class="dashboard">
+
             <div class="stat-box">
-                <div class="stat-value" id="stat-timer">02:00</div>
-                <div class="stat-label">Time Remaining</div>
+                <div class="stat-value" id="stat-timer">00:12</div>
+                <div class="stat-label">Trial Time</div>
             </div>
+
+            <div class="stat-box">
+                <div class="stat-value" id="stat-trial">1/30</div>
+                <div class="stat-label">Trial</div>
+            </div>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-score">0</div>
                 <div class="stat-label">Matches</div>
             </div>
+
             <div class="stat-box">
                 <div class="stat-value" id="stat-acc">100%</div>
                 <div class="stat-label">Accuracy</div>
             </div>
+
         </div>
     </header>
 
     <main>
+
         <div class="instruction-bar">
             <strong>Task:</strong> Select the 2 shapes that are <em>identical under rotation</em>. Watch out for mirrors!
         </div>
@@ -241,383 +253,1889 @@
         <div id="canvas-container"></div>
 
         <div class="settings-panel">
+
             <label>
-                <input type="checkbox" id="chk-sound" checked> Sound Effects
+                <input type="checkbox" id="chk-sound" checked>
+                Sound Effects
             </label>
+
             <label>
-                <input type="checkbox" id="chk-speed" checked> Continuous Rotation
+                <input type="checkbox" id="chk-speed" checked>
+                Continuous Rotation
             </label>
+
+            <label>
+                <input type="checkbox" id="chk-adaptive" checked>
+                Adaptive Difficulty
+            </label>
+
         </div>
 
         <!-- Start Overlay -->
         <div class="overlay" id="start-overlay">
+
             <div class="modal">
+
                 <h2>Dynamic Pair Matching</h2>
+
                 <p>
-                    6 3D shapes will float and continuously spin in real-time. 
-                    Identify the two objects that have identical 3D geometries (ignoring rotation). 
-                    Distractors include mirror reflections and distinct block paths.
+                    6 3D shapes will float and continuously spin in real-time.
+                    Identify the two objects that have identical 3D geometries
+                    (ignoring rotation). Distractors include mirror reflections
+                    and distinct block paths. Each trial has a strict time limit.
+                    Adaptive Difficulty can progressively increase the structures
+                    to extremely complex 3D configurations while reducing the
+                    available response time.
                 </p>
-                <button class="btn" id="btn-start">Start Session</button>
+
+                <button class="btn" id="btn-start">
+                    Start Session
+                </button>
+
             </div>
+
         </div>
 
         <!-- Game Over Overlay -->
         <div class="overlay" id="end-overlay" style="display: none;">
+
             <div class="modal">
+
                 <h2>Session Complete</h2>
-                <p id="end-summary">Score: 0 | Accuracy: 0%</p>
-                <button class="btn" id="btn-restart">Play Again</button>
+
+                <p id="end-summary">
+                    Score: 0 | Accuracy: 0%
+                </p>
+
+                <button class="btn" id="btn-restart">
+                    Play Again
+                </button>
+
             </div>
+
         </div>
+
     </main>
 
     <script>
+
         // --- Audio Synthesizer (Web Audio API) ---
+
         const AudioEngine = {
+
             ctx: null,
+
             init() {
-                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+                if (!this.ctx) {
+                    this.ctx = new (
+                        window.AudioContext ||
+                        window.webkitAudioContext
+                    )();
+                }
+
             },
+
             playTone(freq, duration, type = 'sine') {
-                if (!document.getElementById('chk-sound').checked || !this.ctx) return;
+
+                if (
+                    !document.getElementById('chk-sound').checked ||
+                    !this.ctx
+                ) {
+                    return;
+                }
+
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
+
                 osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                osc.frequency.setValueAtTime(
+                    freq,
+                    this.ctx.currentTime
+                );
+
+                gain.gain.setValueAtTime(
+                    0.15,
+                    this.ctx.currentTime
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.001,
+                    this.ctx.currentTime + duration
+                );
+
                 osc.connect(gain);
                 gain.connect(this.ctx.destination);
+
                 osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+
+                osc.stop(
+                    this.ctx.currentTime + duration
+                );
+
             },
+
             playSuccess() {
+
                 this.init();
-                this.playTone(523.25, 0.15); // C5
-                setTimeout(() => this.playTone(659.25, 0.25), 100); // E5
+
+                this.playTone(
+                    523.25,
+                    0.15
+                );
+
+                setTimeout(
+                    () => this.playTone(
+                        659.25,
+                        0.25
+                    ),
+                    100
+                );
+
             },
+
             playError() {
+
                 this.init();
-                this.playTone(180, 0.3, 'sawtooth');
+
+                this.playTone(
+                    180,
+                    0.3,
+                    'sawtooth'
+                );
+
             },
+
             playSelect() {
+
                 this.init();
-                this.playTone(440, 0.08);
+
+                this.playTone(
+                    440,
+                    0.08
+                );
+
             }
+
         };
 
+
         // --- Session State ---
+
         let sessionActive = false;
-        let sessionTimer = null;
-        let timeRemaining = 120; // 2 Minutes
+
+        let trialTimer = null;
+
+        let trialTimeRemaining = 12;
+
+        let trialStartTime = 0;
+
+        let trialNumber = 0;
+
+        const TOTAL_TRIALS = 30;
+
         let score = 0;
+
         let totalAttempts = 0;
+
         let selectedShapes = [];
-        let shapesData = []; // Metadata for the 6 active shapes
+
+        let shapesData = [];
+
+        // Adaptive difficulty state
+        let adaptiveLevel = 0;
+
+        let adaptiveHistory = [];
+
+        let currentTrialResolved = false;
+
+        let roundTransitionTimeout = null;
+
 
         // --- Three.js Setup ---
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#090d16');
 
-        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(0, 0, 22);
+        const container =
+            document.getElementById(
+                'canvas-container'
+            );
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+        const scene =
+            new THREE.Scene();
 
-        // Lighting Setup
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
-        dirLight.position.set(20, 30, 20);
+        scene.background =
+            new THREE.Color('#090d16');
+
+
+        const camera =
+            new THREE.PerspectiveCamera(
+                45,
+                container.clientWidth /
+                container.clientHeight,
+                0.1,
+                1000
+            );
+
+        camera.position.set(
+            0,
+            0,
+            22
+        );
+
+
+        const renderer =
+            new THREE.WebGLRenderer({
+                antialias: true
+            });
+
+        renderer.setSize(
+            container.clientWidth,
+            container.clientHeight
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio,
+                2
+            )
+        );
+
+        container.appendChild(
+            renderer.domElement
+        );
+
+
+        // --- Lighting Setup ---
+
+        scene.add(
+            new THREE.AmbientLight(
+                0xffffff,
+                0.5
+            )
+        );
+
+        const dirLight =
+            new THREE.DirectionalLight(
+                0xffffff,
+                0.7
+            );
+
+        dirLight.position.set(
+            20,
+            30,
+            20
+        );
+
         scene.add(dirLight);
-        const fillLight = new THREE.DirectionalLight(0x90b0d0, 0.4);
-        fillLight.position.set(-20, -10, -20);
+
+
+        const fillLight =
+            new THREE.DirectionalLight(
+                0x90b0d0,
+                0.4
+            );
+
+        fillLight.position.set(
+            -20,
+            -10,
+            -20
+        );
+
         scene.add(fillLight);
 
-        // Shared Geometry & Materials
-        const cubeGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-        const edgesGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
-        
-        const matDefault = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
-        const matSelected = new THREE.MeshLambertMaterial({ color: 0xf59e0b }); // Yellow highlight
-        const matCorrect = new THREE.MeshLambertMaterial({ color: 0x10b981 });  // Green
-        const matWrong = new THREE.MeshLambertMaterial({ color: 0xef4444 });    // Red
-        const edgeMat = new THREE.LineBasicMaterial({ color: 0x090d16, transparent: true, opacity: 0.6 });
 
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        // --- Shared Geometry & Materials ---
 
-        // 3x2 Grid Offsets in Viewport Space
+        const cubeGeo =
+            new THREE.BoxGeometry(
+                0.96,
+                0.96,
+                0.96
+            );
+
+        const edgesGeo =
+            new THREE.EdgesGeometry(
+                new THREE.BoxGeometry(
+                    1,
+                    1,
+                    1
+                )
+            );
+
+
+        const matDefault =
+            new THREE.MeshLambertMaterial({
+                color: 0xe2e8f0
+            });
+
+        const matSelected =
+            new THREE.MeshLambertMaterial({
+                color: 0xf59e0b
+            });
+
+        const matCorrect =
+            new THREE.MeshLambertMaterial({
+                color: 0x10b981
+            });
+
+        const matWrong =
+            new THREE.MeshLambertMaterial({
+                color: 0xef4444
+            });
+
+        const edgeMat =
+            new THREE.LineBasicMaterial({
+                color: 0x090d16,
+                transparent: true,
+                opacity: 0.6
+            });
+
+
+        const raycaster =
+            new THREE.Raycaster();
+
+        const mouse =
+            new THREE.Vector2();
+
+
+        // --- 3x2 Grid Offsets in Viewport Space ---
+
         const gridPositions = [
-            { x: -7.5, y: 3.8, z: 0 },
-            { x: 0,    y: 3.8, z: 0 },
-            { x: 7.5,  y: 3.8, z: 0 },
-            { x: -7.5, y: -3.8, z: 0 },
-            { x: 0,    y: -3.8, z: 0 },
-            { x: 7.5,  y: -3.8, z: 0 }
+
+            {
+                x: -7.5,
+                y: 3.8,
+                z: 0
+            },
+
+            {
+                x: 0,
+                y: 3.8,
+                z: 0
+            },
+
+            {
+                x: 7.5,
+                y: 3.8,
+                z: 0
+            },
+
+            {
+                x: -7.5,
+                y: -3.8,
+                z: 0
+            },
+
+            {
+                x: 0,
+                y: -3.8,
+                z: 0
+            },
+
+            {
+                x: 7.5,
+                y: -3.8,
+                z: 0
+            }
+
         ];
 
+
         // --- Algorithmic Path Generation ---
+
         function generateComplexPath(numBlocks) {
-            const positions = [[0, 0, 0]];
-            let currentPos = [0, 0, 0];
-            const axes = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
-            let currentDir = axes[Math.floor(Math.random() * axes.length)];
 
-            while (positions.length < numBlocks) {
-                let segLength = Math.floor(Math.random() * 3) + 2;
-                for (let i = 0; i < segLength && positions.length < numBlocks; i++) {
-                    currentPos = [
-                        currentPos[0] + currentDir[0],
-                        currentPos[1] + currentDir[1],
-                        currentPos[2] + currentDir[2]
-                    ];
-                    if (!positions.some(p => p[0] === currentPos[0] && p[1] === currentPos[1] && p[2] === currentPos[2])) {
-                        positions.push([...currentPos]);
-                    }
-                }
-                const orthos = axes.filter(a => (a[0] * currentDir[0] + a[1] * currentDir[1] + a[2] * currentDir[2]) === 0);
-                currentDir = orthos[Math.floor(Math.random() * orthos.length)];
-            }
-            return positions;
-        }
-
-        function createShapeGroup(positions, material) {
-            const group = new THREE.Group();
-            positions.forEach(pos => {
-                const mesh = new THREE.Mesh(cubeGeo, material);
-                mesh.position.set(...pos);
-                group.add(mesh);
-
-                const edges = new THREE.LineSegments(edgesGeo, edgeMat);
-                edges.position.set(...pos);
-                group.add(edges);
-            });
-
-            // Center geometry inside group
-            const box = new THREE.Box3().setFromObject(group);
-            const center = box.getCenter(new THREE.Vector3());
-            group.children.forEach(c => c.position.sub(center));
-            return group;
-        }
-
-        // --- Round Construction Engine ---
-        function clearShapes() {
-            shapesData.forEach(item => scene.remove(item.containerGroup));
-            shapesData = [];
-            selectedShapes = [];
-        }
-
-        function spawnRound() {
-            clearShapes();
-
-            // Scale complexity with score (Starts at 10 cubes, scales up to 18)
-            const numCubes = Math.min(10 + Math.floor(score / 2), 18);
-
-            // Generate geometries
-            const pathA = generateComplexPath(numCubes);
-            const pathAMirror = pathA.map(p => [-p[0], p[1], p[2]]); // Chiral mirror distractor
-            const pathB = generateComplexPath(numCubes);
-            const pathBMirror = pathB.map(p => [-p[0], p[1], p[2]]);
-            const pathC = generateComplexPath(numCubes);
-
-            const pathDefs = [
-                { path: pathA, matchId: 'TARGET_A' },
-                { path: pathA, matchId: 'TARGET_A' }, // Exact pair match
-                { path: pathAMirror, matchId: 'MIRROR_A' },
-                { path: pathB, matchId: 'DISTRACTOR_B' },
-                { path: pathBMirror, matchId: 'MIRROR_B' },
-                { path: pathC, matchId: 'DISTRACTOR_C' }
+            const positions = [
+                [0, 0, 0]
             ];
 
-            // Shuffle grid slots
-            pathDefs.sort(() => Math.random() - 0.5);
+            let currentPos = [
+                0,
+                0,
+                0
+            ];
 
-            pathDefs.forEach((def, index) => {
-                const innerGroup = createShapeGroup(def.path, matDefault);
-                const containerGroup = new THREE.Group();
-                containerGroup.add(innerGroup);
+            const axes = [
 
-                // Position in grid
-                const pos = gridPositions[index];
-                containerGroup.position.set(pos.x, pos.y, pos.z);
+                [1, 0, 0],
+                [-1, 0, 0],
 
-                // Initial random orientation
-                innerGroup.rotation.set(
-                    Math.random() * Math.PI * 2,
-                    Math.random() * Math.PI * 2,
-                    Math.random() * Math.PI * 2
-                );
+                [0, 1, 0],
+                [0, -1, 0],
 
-                // Multi-axis rotation velocity (Speed scales slightly with score)
-                const speedScale = 0.008 + Math.min(score * 0.001, 0.012);
-                const rotVelocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale,
-                    (Math.random() - 0.5) * speedScale
-                );
+                [0, 0, 1],
+                [0, 0, -1]
 
-                scene.add(containerGroup);
+            ];
 
-                shapesData.push({
-                    id: index,
-                    matchId: def.matchId,
-                    containerGroup,
-                    innerGroup,
-                    rotVelocity,
-                    meshes: innerGroup.children.filter(c => c.isMesh)
-                });
-            });
-        }
+            let currentDir =
+                axes[
+                    Math.floor(
+                        Math.random() *
+                        axes.length
+                    )
+                ];
 
-        // --- User Interaction & Selection Logic ---
-        function onPointerDown(event) {
-            if (!sessionActive || selectedShapes.length >= 2) return;
 
-            const rect = renderer.domElement.getBoundingClientRect();
-            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            while (
+                positions.length <
+                numBlocks
+            ) {
 
-            raycaster.setFromCamera(mouse, camera);
+                /*
+                 * Shorter, more frequent turns
+                 * keep high-complexity structures
+                 * compact while producing many
+                 * 3D branches and directional changes.
+                 */
 
-            // Collect all meshes for raycasting
-            let allMeshes = [];
-            shapesData.forEach(s => allMeshes.push(...s.meshes));
+                let segLength =
+                    Math.floor(
+                        Math.random() * 2
+                    ) + 1;
 
-            const intersects = raycaster.intersectObjects(allMeshes);
 
-            if (intersects.length > 0) {
-                const hitMesh = intersects[0].object;
-                // Find parent shape container
-                const targetShape = shapesData.find(s => s.innerGroup.children.includes(hitMesh));
+                for (
+                    let i = 0;
+                    i < segLength &&
+                    positions.length < numBlocks;
+                    i++
+                ) {
 
-                if (targetShape && !selectedShapes.includes(targetShape)) {
-                    AudioEngine.playSelect();
-                    setShapeMaterial(targetShape, matSelected);
-                    selectedShapes.push(targetShape);
+                    const candidate = [
 
-                    if (selectedShapes.length === 2) {
-                        evaluateSelection();
+                        currentPos[0] +
+                        currentDir[0],
+
+                        currentPos[1] +
+                        currentDir[1],
+
+                        currentPos[2] +
+                        currentDir[2]
+
+                    ];
+
+
+                    if (
+                        !positions.some(
+                            p =>
+                                p[0] === candidate[0] &&
+                                p[1] === candidate[1] &&
+                                p[2] === candidate[2]
+                        )
+                    ) {
+
+                        currentPos =
+                            candidate;
+
+                        positions.push([
+                            ...currentPos
+                        ]);
+
+                    } else {
+
+                        break;
+
                     }
+
                 }
+
+
+                const occupied =
+                    new Set(
+                        positions.map(
+                            p => p.join(',')
+                        )
+                    );
+
+
+                const availableDirections =
+                    axes.filter(a => {
+
+                        const next = [
+
+                            currentPos[0] + a[0],
+                            currentPos[1] + a[1],
+                            currentPos[2] + a[2]
+
+                        ];
+
+                        return !occupied.has(
+                            next.join(',')
+                        );
+
+                    });
+
+
+                /*
+                 * Prefer turns, but allow a fallback
+                 * to any open direction so generation
+                 * cannot stall at high complexity.
+                 */
+
+                const orthos =
+                    availableDirections.filter(
+                        a =>
+                            (
+                                a[0] * currentDir[0] +
+                                a[1] * currentDir[1] +
+                                a[2] * currentDir[2]
+                            ) === 0
+                    );
+
+
+                const candidates =
+                    orthos.length
+                        ? orthos
+                        : availableDirections;
+
+
+                if (!candidates.length) {
+
+                    /*
+                     * Rare fallback:
+                     * restart the walk from
+                     * a random existing block.
+                     */
+
+                    const restart =
+                        positions[
+                            Math.floor(
+                                Math.random() *
+                                positions.length
+                            )
+                        ];
+
+                    currentPos = [
+                        ...restart
+                    ];
+
+                    currentDir =
+                        axes[
+                            Math.floor(
+                                Math.random() *
+                                axes.length
+                            )
+                        ];
+
+                    continue;
+
+                }
+
+
+                currentDir =
+                    candidates[
+                        Math.floor(
+                            Math.random() *
+                            candidates.length
+                        )
+                    ];
+
             }
+
+
+            return positions;
+
         }
 
-        function setShapeMaterial(shapeItem, material) {
-            shapeItem.meshes.forEach(m => m.material = material);
-        }
 
-        function evaluateSelection() {
-            totalAttempts++;
-            const [shape1, shape2] = selectedShapes;
+        // --- Shape Group Construction ---
 
-            const isMatch = (shape1.matchId === 'TARGET_A' && shape2.matchId === 'TARGET_A');
+        function createShapeGroup(
+            positions,
+            material
+        ) {
 
-            if (isMatch) {
-                AudioEngine.playSuccess();
-                setShapeMaterial(shape1, matCorrect);
-                setShapeMaterial(shape2, matCorrect);
-                score++;
-                updateDashboard();
+            const group =
+                new THREE.Group();
 
-                setTimeout(() => {
-                    if (sessionActive) spawnRound();
-                }, 600);
-            } else {
-                AudioEngine.playError();
-                setShapeMaterial(shape1, matWrong);
-                setShapeMaterial(shape2, matWrong);
-                updateDashboard();
 
-                // Highlight correct pair as feedback
-                const correctPair = shapesData.filter(s => s.matchId === 'TARGET_A');
-                correctPair.forEach(s => setShapeMaterial(s, matCorrect));
+            positions.forEach(pos => {
 
-                setTimeout(() => {
-                    if (sessionActive) spawnRound();
-                }, 1600);
+                const mesh =
+                    new THREE.Mesh(
+                        cubeGeo,
+                        material
+                    );
+
+                mesh.position.set(
+                    ...pos
+                );
+
+                group.add(mesh);
+
+
+                const edges =
+                    new THREE.LineSegments(
+                        edgesGeo,
+                        edgeMat
+                    );
+
+                edges.position.set(
+                    ...pos
+                );
+
+                group.add(edges);
+
+            });
+
+
+            // Center geometry inside group
+
+            const box =
+                new THREE.Box3()
+                    .setFromObject(group);
+
+            const center =
+                box.getCenter(
+                    new THREE.Vector3()
+                );
+
+
+            group.children.forEach(
+                c =>
+                    c.position.sub(
+                        center
+                    )
+            );
+
+
+            /*
+             * Keep very complex structures
+             * visible in their grid cell without
+             * reducing the number of blocks that
+             * make the task difficult.
+             */
+
+            const centeredBox =
+                new THREE.Box3()
+                    .setFromObject(group);
+
+            const size =
+                centeredBox.getSize(
+                    new THREE.Vector3()
+                );
+
+            const maxDimension =
+                Math.max(
+                    size.x,
+                    size.y,
+                    size.z
+                );
+
+            const maxDisplaySize = 5.0;
+
+
+            if (
+                maxDimension >
+                maxDisplaySize
+            ) {
+
+                group.scale.setScalar(
+                    maxDisplaySize /
+                    maxDimension
+                );
+
             }
+
+
+            return group;
+
         }
 
-        // --- Dashboard & Timer ---
-        function updateDashboard() {
-            document.getElementById('stat-score').innerText = score;
-            const acc = totalAttempts === 0 ? 100 : Math.round((score / totalAttempts) * 100);
-            document.getElementById('stat-acc').innerText = `${acc}%`;
 
-            const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
-            const secs = (timeRemaining % 60).toString().padStart(2, '0');
-            document.getElementById('stat-timer').innerText = `${mins}:${secs}`;
+        // --- Adaptive Difficulty Engine ---
+
+        function getDifficultySettings() {
+
+            /*
+             * Adaptive mode OFF:
+             * Standard baseline task.
+             */
+
+            if (
+                !document
+                    .getElementById(
+                        'chk-adaptive'
+                    )
+                    .checked
+            ) {
+
+                return {
+
+                    level: 0,
+
+                    numCubes: 10,
+
+                    speedScale: 0.008,
+
+                    trialSeconds: 12
+
+                };
+
+            }
+
+
+            /*
+             * Adaptive mode deliberately pushes
+             * complexity far beyond the normal
+             * 10-block task.
+             *
+             * Maximum:
+             * 30 blocks
+             * faster rotation
+             * 6-second trial
+             */
+
+            return {
+
+                level: adaptiveLevel,
+
+                numCubes:
+                    Math.min(
+                        10 +
+                        adaptiveLevel * 2,
+                        30
+                    ),
+
+                speedScale:
+                    0.008 +
+                    adaptiveLevel * 0.0012,
+
+                trialSeconds:
+                    Math.max(
+                        6,
+                        12 -
+                        adaptiveLevel * 0.6
+                    )
+
+            };
+
         }
 
-        function startSession() {
-            sessionActive = true;
-            score = 0;
-            totalAttempts = 0;
-            timeRemaining = 120;
+
+        function updateAdaptiveDifficulty(
+            wasCorrect,
+            responseMs,
+            timedOut = false
+        ) {
+
+            if (
+                !document
+                    .getElementById(
+                        'chk-adaptive'
+                    )
+                    .checked
+            ) {
+                return;
+            }
+
+
+            const currentSettings =
+                getDifficultySettings();
+
+
+            const responseRatio =
+                timedOut
+
+                    ? 1
+
+                    : Math.min(
+                        responseMs /
+                        (
+                            currentSettings.trialSeconds *
+                            1000
+                        ),
+                        1
+                    );
+
+
+            adaptiveHistory.push({
+
+                correct:
+                    wasCorrect,
+
+                ratio:
+                    responseRatio,
+
+                timedOut
+
+            });
+
+
+            /*
+             * Maintain a rolling five-trial
+             * performance history.
+             */
+
+            if (
+                adaptiveHistory.length >
+                5
+            ) {
+
+                adaptiveHistory.shift();
+
+            }
+
+
+            /*
+             * Wait for several trials before
+             * making the first difficulty change.
+             */
+
+            if (
+                adaptiveHistory.length <
+                3
+            ) {
+
+                return;
+
+            }
+
+
+            const correctRate =
+                adaptiveHistory.filter(
+                    r => r.correct
+                ).length /
+                adaptiveHistory.length;
+
+
+            const averageRatio =
+                adaptiveHistory.reduce(
+                    (sum, r) =>
+                        sum + r.ratio,
+                    0
+                ) /
+                adaptiveHistory.length;
+
+
+            const recentTimeout =
+                adaptiveHistory[
+                    adaptiveHistory.length - 1
+                ].timedOut;
+
+
+            /*
+             * Strong performance:
+             * high accuracy + relatively fast
+             * responses = increase difficulty.
+             */
+
+            if (
+                correctRate >= 0.8 &&
+                averageRatio <= 0.70
+            ) {
+
+                adaptiveLevel =
+                    Math.min(
+                        adaptiveLevel + 1,
+                        10
+                    );
+
+                adaptiveHistory = [];
+
+            }
+
+
+            /*
+             * Poor performance:
+             * timeout or low accuracy =
+             * reduce difficulty.
+             */
+
+            else if (
+                recentTimeout ||
+                correctRate <= 0.40
+            ) {
+
+                adaptiveLevel =
+                    Math.max(
+                        adaptiveLevel - 1,
+                        0
+                    );
+
+                adaptiveHistory = [];
+
+            }
+
+        }
+
+
+        // --- Trial Timer ---
+
+        function startTrialTimer() {
+
+            clearInterval(
+                trialTimer
+            );
+
+
+            const settings =
+                getDifficultySettings();
+
+
+            trialTimeRemaining =
+                settings.trialSeconds;
+
+
+            trialStartTime =
+                performance.now();
+
+
+            currentTrialResolved =
+                false;
+
+
             updateDashboard();
 
-            document.getElementById('start-overlay').style.display = 'none';
-            document.getElementById('end-overlay').style.display = 'none';
+
+            /*
+             * Update the timer every 100 ms
+             * so the pressure feels continuous.
+             */
+
+            trialTimer =
+                setInterval(() => {
+
+                    trialTimeRemaining =
+                        Math.max(
+                            0,
+                            trialTimeRemaining -
+                            0.1
+                        );
+
+
+                    updateDashboard();
+
+
+                    if (
+                        trialTimeRemaining <= 0
+                    ) {
+
+                        clearInterval(
+                            trialTimer
+                        );
+
+                        handleTrialTimeout();
+
+                    }
+
+                }, 100);
+
+        }
+
+
+        // --- Trial Timeout ---
+
+        function handleTrialTimeout() {
+
+            if (
+                !sessionActive ||
+                currentTrialResolved
+            ) {
+                return;
+            }
+
+
+            currentTrialResolved =
+                true;
+
+
+            totalAttempts++;
+
+
+            updateAdaptiveDifficulty(
+                false,
+                getDifficultySettings()
+                    .trialSeconds * 1000,
+                true
+            );
+
+
+            AudioEngine.playError();
+
+
+            /*
+             * Show the correct pair briefly
+             * so the user receives immediate feedback.
+             */
+
+            const correctPair =
+                shapesData.filter(
+                    s =>
+                        s.matchId ===
+                        'TARGET_A'
+                );
+
+
+            correctPair.forEach(
+                s =>
+                    setShapeMaterial(
+                        s,
+                        matCorrect
+                    )
+            );
+
+
+            updateDashboard();
+
+
+            roundTransitionTimeout =
+                setTimeout(() => {
+
+                    if (
+                        sessionActive
+                    ) {
+
+                        advanceTrial();
+
+                    }
+
+                }, 800);
+
+        }
+
+
+        // --- Advance Trial ---
+
+        function advanceTrial() {
+
+            if (!sessionActive) {
+                return;
+            }
+
+
+            /*
+             * Session is based on trial count,
+             * not elapsed session time.
+             */
+
+            if (
+                trialNumber >=
+                TOTAL_TRIALS
+            ) {
+
+                endSession();
+
+                return;
+
+            }
+
+
+            trialNumber++;
+
 
             spawnRound();
 
-            clearInterval(sessionTimer);
-            sessionTimer = setInterval(() => {
-                timeRemaining--;
-                updateDashboard();
-                if (timeRemaining <= 0) {
-                    endSession();
-                }
-            }, 1000);
         }
 
-        function endSession() {
-            sessionActive = false;
-            clearInterval(sessionTimer);
+
+        // --- Round Construction Engine ---
+
+        function clearShapes() {
+
+            shapesData.forEach(
+                item =>
+                    scene.remove(
+                        item.containerGroup
+                    )
+            );
+
+
+            shapesData = [];
+
+            selectedShapes = [];
+
+        }
+
+
+        function spawnRound() {
+
             clearShapes();
 
-            const acc = totalAttempts === 0 ? 0 : Math.round((score / totalAttempts) * 100);
-            document.getElementById('end-summary').innerText = `Total Solved: ${score} | Accuracy: ${acc}%`;
-            document.getElementById('end-overlay').style.display = 'flex';
+            clearTimeout(
+                roundTransitionTimeout
+            );
+
+
+            const settings =
+                getDifficultySettings();
+
+
+            const numCubes =
+                settings.numCubes;
+
+
+            // Generate geometries
+
+            const pathA =
+                generateComplexPath(
+                    numCubes
+                );
+
+
+            const pathAMirror =
+                pathA.map(
+                    p =>
+                        [
+                            -p[0],
+                            p[1],
+                            p[2]
+                        ]
+                );
+
+
+            const pathB =
+                generateComplexPath(
+                    numCubes
+                );
+
+
+            const pathBMirror =
+                pathB.map(
+                    p =>
+                        [
+                            -p[0],
+                            p[1],
+                            p[2]
+                        ]
+                );
+
+
+            const pathC =
+                generateComplexPath(
+                    numCubes
+                );
+
+
+            const pathDefs = [
+
+                {
+                    path: pathA,
+                    matchId: 'TARGET_A'
+                },
+
+                {
+                    path: pathA,
+                    matchId: 'TARGET_A'
+                },
+
+                {
+                    path: pathAMirror,
+                    matchId: 'MIRROR_A'
+                },
+
+                {
+                    path: pathB,
+                    matchId: 'DISTRACTOR_B'
+                },
+
+                {
+                    path: pathBMirror,
+                    matchId: 'MIRROR_B'
+                },
+
+                {
+                    path: pathC,
+                    matchId: 'DISTRACTOR_C'
+                }
+
+            ];
+
+
+            // Shuffle grid slots
+
+            pathDefs.sort(
+                () =>
+                    Math.random() -
+                    0.5
+            );
+
+
+            pathDefs.forEach(
+                (def, index) => {
+
+                    const innerGroup =
+                        createShapeGroup(
+                            def.path,
+                            matDefault
+                        );
+
+
+                    const containerGroup =
+                        new THREE.Group();
+
+
+                    containerGroup.add(
+                        innerGroup
+                    );
+
+
+                    // Position in grid
+
+                    const pos =
+                        gridPositions[
+                            index
+                        ];
+
+
+                    containerGroup.position.set(
+                        pos.x,
+                        pos.y,
+                        pos.z
+                    );
+
+
+                    // Initial random orientation
+
+                    innerGroup.rotation.set(
+
+                        Math.random() *
+                        Math.PI *
+                        2,
+
+                        Math.random() *
+                        Math.PI *
+                        2,
+
+                        Math.random() *
+                        Math.PI *
+                        2
+
+                    );
+
+
+                    /*
+                     * Multi-axis rotation velocity
+                     * scales with adaptive difficulty.
+                     */
+
+                    const speedScale =
+                        settings.speedScale;
+
+
+                    const rotVelocity =
+                        new THREE.Vector3(
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale,
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale,
+
+                            (
+                                Math.random() -
+                                0.5
+                            ) *
+                            speedScale
+
+                        );
+
+
+                    scene.add(
+                        containerGroup
+                    );
+
+
+                    shapesData.push({
+
+                        id: index,
+
+                        matchId:
+                            def.matchId,
+
+                        containerGroup,
+
+                        innerGroup,
+
+                        rotVelocity,
+
+                        meshes:
+                            innerGroup
+                                .children
+                                .filter(
+                                    c =>
+                                        c.isMesh
+                                )
+
+                    });
+
+                }
+            );
+
+
+            // Start strict trial countdown
+
+            startTrialTimer();
+
         }
 
-        // --- Main Render Loop ---
-        const enableRotationChk = document.getElementById('chk-speed');
 
-        function animate() {
-            requestAnimationFrame(animate);
+        // --- User Interaction & Selection Logic ---
 
-            // Continuous Rotation Engine
-            if (enableRotationChk.checked) {
-                shapesData.forEach(item => {
-                    item.innerGroup.rotation.x += item.rotVelocity.x;
-                    item.innerGroup.rotation.y += item.rotVelocity.y;
-                    item.innerGroup.rotation.z += item.rotVelocity.z;
-                });
+        function onPointerDown(event) {
+
+            if (
+                !sessionActive ||
+                selectedShapes.length >= 2
+            ) {
+                return;
             }
 
-            renderer.render(scene, camera);
+
+            const rect =
+                renderer.domElement
+                    .getBoundingClientRect();
+
+
+            mouse.x =
+                (
+                    (
+                        event.clientX -
+                        rect.left
+                    ) /
+                    rect.width
+                ) *
+                2 -
+                1;
+
+
+            mouse.y =
+                -(
+                    (
+                        event.clientY -
+                        rect.top
+                    ) /
+                    rect.height
+                ) *
+                2 +
+                1;
+
+
+            raycaster.setFromCamera(
+                mouse,
+                camera
+            );
+
+
+            // Collect all meshes for raycasting
+
+            let allMeshes = [];
+
+
+            shapesData.forEach(
+                s =>
+                    allMeshes.push(
+                        ...s.meshes
+                    )
+            );
+
+
+            const intersects =
+                raycaster.intersectObjects(
+                    allMeshes
+                );
+
+
+            if (
+                intersects.length > 0
+            ) {
+
+                const hitMesh =
+                    intersects[0].object;
+
+
+                // Find parent shape container
+
+                const targetShape =
+                    shapesData.find(
+                        s =>
+                            s.innerGroup
+                                .children
+                                .includes(
+                                    hitMesh
+                                )
+                    );
+
+
+                if (
+                    targetShape &&
+                    !selectedShapes.includes(
+                        targetShape
+                    )
+                ) {
+
+                    AudioEngine.playSelect();
+
+
+                    setShapeMaterial(
+                        targetShape,
+                        matSelected
+                    );
+
+
+                    selectedShapes.push(
+                        targetShape
+                    );
+
+
+                    if (
+                        selectedShapes.length ===
+                        2
+                    ) {
+
+                        evaluateSelection();
+
+                    }
+
+                }
+
+            }
+
         }
 
-        // --- Event Listeners & Responsiveness ---
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
 
-        renderer.domElement.addEventListener('pointerdown', onPointerDown);
-        document.getElementById('btn-start').addEventListener('click', startSession);
-        document.getElementById('btn-restart').addEventListener('click', startSession);
+        function setShapeMaterial(
+            shapeItem,
+            material
+        ) {
+
+            shapeItem.meshes.forEach(
+                m =>
+                    m.material =
+                        material
+            );
+
+        }
+
+
+        // --- Evaluate Selection ---
+
+        function evaluateSelection() {
+
+            if (
+                currentTrialResolved
+            ) {
+                return;
+            }
+
+
+            currentTrialResolved =
+                true;
+
+
+            clearInterval(
+                trialTimer
+            );
+
+
+            totalAttempts++;
+
+
+            const responseMs =
+                performance.now() -
+                trialStartTime;
+
+
+            const [
+                shape1,
+                shape2
+            ] = selectedShapes;
+
+
+            const isMatch =
+                (
+                    shape1.matchId ===
+                    'TARGET_A' &&
+                    shape2.matchId ===
+                    'TARGET_A'
+                );
+
+
+            /*
+             * Update adaptive difficulty
+             * based on correctness and speed.
+             */
+
+            updateAdaptiveDifficulty(
+                isMatch,
+                responseMs,
+                false
+            );
+
+
+            if (isMatch) {
+
+                AudioEngine.playSuccess();
+
+
+                setShapeMaterial(
+                    shape1,
+                    matCorrect
+                );
+
+
+                setShapeMaterial(
+                    shape2,
+                    matCorrect
+                );
+
+
+                score++;
+
+
+                updateDashboard();
+
+
+                roundTransitionTimeout =
+                    setTimeout(() => {
+
+                        if (
+                            sessionActive
+                        ) {
+
+                            advanceTrial();
+
+                        }
+
+                    }, 600);
+
+            } else {
+
+                AudioEngine.playError();
+
+
+                setShapeMaterial(
+                    shape1,
+                    matWrong
+                );
+
+
+                setShapeMaterial(
+                    shape2,
+                    matWrong
+                );
+
+
+                updateDashboard();
+
+
+                // Highlight correct pair as feedback
+
+                const correctPair =
+                    shapesData.filter(
+                        s =>
+                            s.matchId ===
+                            'TARGET_A'
+                    );
+
+
+                correctPair.forEach(
+                    s =>
+                        setShapeMaterial(
+                            s,
+                            matCorrect
+                        )
+                );
+
+
+                roundTransitionTimeout =
+                    setTimeout(() => {
+
+                        if (
+                            sessionActive
+                        ) {
+
+                            advanceTrial();
+
+                        }
+
+                    }, 1000);
+
+            }
+
+        }
+
+
+        // --- Dashboard & Timer ---
+
+        function updateDashboard() {
+
+            document.getElementById(
+                'stat-score'
+            ).innerText =
+                score;
+
+
+            const acc =
+                totalAttempts === 0
+                    ? 100
+                    : Math.round(
+                        (
+                            score /
+                            totalAttempts
+                        ) *
+                        100
+                    );
+
+
+            document.getElementById(
+                'stat-acc'
+            ).innerText =
+                `${acc}%`;
+
+
+            const mins =
+                Math.floor(
+                    trialTimeRemaining /
+                    60
+                )
+                .toString()
+                .padStart(
+                    2,
+                    '0'
+                );
+
+
+            const secs =
+                Math.floor(
+                    trialTimeRemaining %
+                    60
+                )
+                .toString()
+                .padStart(
+                    2,
+                    '0'
+                );
+
+
+            document.getElementById(
+                'stat-timer'
+            ).innerText =
+                `${mins}:${secs}`;
+
+
+            document.getElementById(
+                'stat-trial'
+            ).innerText =
+                `${Math.min(
+                    trialNumber,
+                    TOTAL_TRIALS
+                )}/${TOTAL_TRIALS}`;
+
+        }
+
+
+        // --- Start Session ---
+
+        function startSession() {
+
+            sessionActive =
+                true;
+
+
+            score = 0;
+
+            totalAttempts = 0;
+
+            trialNumber = 0;
+
+            trialTimeRemaining = 12;
+
+            adaptiveLevel = 0;
+
+            adaptiveHistory = [];
+
+            currentTrialResolved =
+                false;
+
+
+            clearInterval(
+                trialTimer
+            );
+
+            clearTimeout(
+                roundTransitionTimeout
+            );
+
+
+            updateDashboard();
+
+
+            document.getElementById(
+                'start-overlay'
+            ).style.display =
+                'none';
+
+
+            document.getElementById(
+                'end-overlay'
+            ).style.display =
+                'none';
+
+
+            advanceTrial();
+
+        }
+
+
+        // --- End Session ---
+
+        function endSession() {
+
+            sessionActive =
+                false;
+
+
+            clearInterval(
+                trialTimer
+            );
+
+
+            clearTimeout(
+                roundTransitionTimeout
+            );
+
+
+            clearShapes();
+
+
+            const acc =
+                totalAttempts === 0
+                    ? 0
+                    : Math.round(
+                        (
+                            score /
+                            totalAttempts
+                        ) *
+                        100
+                    );
+
+
+            document.getElementById(
+                'end-summary'
+            ).innerText =
+                `Total Solved: ${score} | Accuracy: ${acc}%`;
+
+
+            document.getElementById(
+                'end-overlay'
+            ).style.display =
+                'flex';
+
+        }
+
+
+        // --- Main Render Loop ---
+
+        const enableRotationChk =
+            document.getElementById(
+                'chk-speed'
+            );
+
+
+        function animate() {
+
+            requestAnimationFrame(
+                animate
+            );
+
+
+            // Continuous Rotation Engine
+
+            if (
+                enableRotationChk.checked
+            ) {
+
+                shapesData.forEach(
+                    item => {
+
+                        item.innerGroup.rotation.x +=
+                            item.rotVelocity.x;
+
+
+                        item.innerGroup.rotation.y +=
+                            item.rotVelocity.y;
+
+
+                        item.innerGroup.rotation.z +=
+                            item.rotVelocity.z;
+
+                    }
+                );
+
+            }
+
+
+            renderer.render(
+                scene,
+                camera
+            );
+
+        }
+
+
+        // --- Event Listeners & Responsiveness ---
+
+        window.addEventListener(
+            'resize',
+            () => {
+
+                camera.aspect =
+                    container.clientWidth /
+                    container.clientHeight;
+
+
+                camera.updateProjectionMatrix();
+
+
+                renderer.setSize(
+                    container.clientWidth,
+                    container.clientHeight
+                );
+
+            }
+        );
+
+
+        renderer.domElement.addEventListener(
+            'pointerdown',
+            onPointerDown
+        );
+
+
+        document
+            .getElementById(
+                'btn-start'
+            )
+            .addEventListener(
+                'click',
+                startSession
+            );
+
+
+        document
+            .getElementById(
+                'btn-restart'
+            )
+            .addEventListener(
+                'click',
+                startSession
+            );
+
 
         // Init frame
+
         animate();
+
     </script>
+
 </body>
 
 </html>
