@@ -92,6 +92,7 @@
             height: 64px;
 
             flex-shrink: 0;
+            position: relative; /* Added for absolute centering of community link */
         }
 
         h1 {
@@ -185,19 +186,37 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 12px;
+            height: 16px; /* Increased to fit text clearly */
             background: #1e293b;
             z-index: 40;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #timer-bar-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
             height: 100%;
             width: 100%;
             background: var(--correct);
             transition: width 0.1s linear, background-color 0.3s ease;
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
             border-radius: 0 4px 4px 0;
+            z-index: 41;
+        }
+
+        #stat-timer {
+            position: relative;
+            z-index: 45; /* Above the fill */
+            color: #ffffff;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: bold;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.8);
+            pointer-events: none;
         }
 
         .timer-warning {
@@ -475,13 +494,15 @@
         }
 
         .community-link {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             color: var(--text-muted);
-
             text-decoration: none;
-
-            font-size: 12px;
-
+            font-size: 13px;
+            font-weight: 600;
             white-space: nowrap;
+            z-index: 20;
         }
 
         .community-link:hover {
@@ -535,7 +556,7 @@
             }
 
             .instruction-bar {
-                top: 18px;
+                top: 24px;
 
                 max-width:
                     calc(100% - 24px);
@@ -629,17 +650,17 @@
             Spatial Rotation
             <span>PRO</span>
         </h1>
+        
+        <a
+            class="community-link"
+            href="https://discord.gg/brain"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            Mindbuilding
+        </a>
 
         <div class="dashboard">
-
-            <a
-                class="community-link"
-                href="https://discord.gg/brain"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                discord.gg/brain
-            </a>
 
             <button
                 class="btn session-button"
@@ -659,21 +680,6 @@
 
                 <div class="stat-label">
                     Difficulty
-                </div>
-
-            </div>
-
-            <div class="stat-box">
-
-                <div
-                    class="stat-value"
-                    id="stat-timer"
-                >
-                    00:15
-                </div>
-
-                <div class="stat-label">
-                    Trial Time
                 </div>
 
             </div>
@@ -736,6 +742,7 @@
         
         <div id="timer-bar-container">
             <div id="timer-bar-fill"></div>
+            <div id="stat-timer">00:15</div>
         </div>
 
         <div class="instruction-bar">
@@ -1120,6 +1127,10 @@
         let adaptiveLevel = 0;
 
         let adaptiveHistory = [];
+        
+        let consecutiveWins = 0;
+        let consecutiveLosses = 0;
+        let timeModifier = 0;
 
         let currentTrialResolved = false;
 
@@ -1993,6 +2004,8 @@
 
             }
 
+            const baseAdaptiveTime = Math.max(4, 15 - adaptiveLevel * 1.1);
+            const finalTrialSeconds = Math.max(3, baseAdaptiveTime + timeModifier);
 
             return {
 
@@ -2017,16 +2030,7 @@
                     ) *
                     manualSpeed,
 
-                // Expanded scalar to ensure lower difficulty grants even more time pressure relief
-                trialSeconds:
-
-                    Math.max(
-                        4,
-
-                        15 -
-                            adaptiveLevel *
-                            1.1
-                    )
+                trialSeconds: finalTrialSeconds
 
             };
         }
@@ -2300,6 +2304,12 @@
 
             totalAttempts++;
 
+            consecutiveLosses++;
+            consecutiveWins = 0;
+            if (consecutiveLosses >= 3) {
+                timeModifier += 3;
+                consecutiveLosses = 0;
+            }
 
             updateAdaptiveDifficulty(
 
@@ -2809,8 +2819,7 @@
         ) {
 
             if (
-                !sessionActive ||
-                selectedShapes.length >= 2
+                !sessionActive
             ) {
 
                 return;
@@ -2873,33 +2882,40 @@
 
 
             if (
-                targetShape &&
-                !selectedShapes.includes(
-                    targetShape
-                )
+                targetShape
             ) {
+                if (selectedShapes.includes(targetShape)) {
+                    AudioEngine.playSelect();
+                    
+                    setShapeMaterial(
+                        targetShape,
+                        matDefault
+                    );
 
-                AudioEngine.playSelect();
-
-
-                setShapeMaterial(
-                    targetShape,
-                    matSelected
-                );
-
-
-                selectedShapes.push(
-                    targetShape
-                );
+                    selectedShapes = selectedShapes.filter(s => s !== targetShape);
+                } else if (selectedShapes.length < 2) {
+                    AudioEngine.playSelect();
 
 
-                if (
-                    selectedShapes.length ===
-                    2
-                ) {
+                    setShapeMaterial(
+                        targetShape,
+                        matSelected
+                    );
 
-                    evaluateSelection();
 
+                    selectedShapes.push(
+                        targetShape
+                    );
+
+
+                    if (
+                        selectedShapes.length ===
+                        2
+                    ) {
+
+                        evaluateSelection();
+
+                    }
                 }
             }
         }
@@ -2970,6 +2986,21 @@
                 shape2.matchId ===
                     'TARGET_A';
 
+            if (isMatch) {
+                consecutiveWins++;
+                consecutiveLosses = 0;
+                if (consecutiveWins >= 3) {
+                    timeModifier -= 2;
+                    consecutiveWins = 0;
+                }
+            } else {
+                consecutiveLosses++;
+                consecutiveWins = 0;
+                if (consecutiveLosses >= 3) {
+                    timeModifier += 3;
+                    consecutiveLosses = 0;
+                }
+            }
 
             updateAdaptiveDifficulty(
 
@@ -3264,6 +3295,12 @@
 
             adaptiveLevel =
                 0;
+
+            consecutiveWins = 0;
+            
+            consecutiveLosses = 0;
+
+            timeModifier = 0;
 
 
             adaptiveHistory =
