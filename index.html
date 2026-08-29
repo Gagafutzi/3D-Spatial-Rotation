@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Dynamic Spatial Rotation Trainer</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --panel-bg: #131b2e;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --correct: #10b981;
+            --wrong: #ef4444;
+            --card-border: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header & Dashboard --- */
+        header {
+            padding: 12px 24px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            height: 64px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h1 span {
+            font-size: 11px;
+            background: var(--accent);
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            text-transform: uppercase;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .stat-value {
+            color: var(--accent);
+            font-size: 20px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Workspace Layout --- */
+        main {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: calc(100vh - 64px);
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* --- Overlay Panels --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 13, 22, 0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .modal {
+            background: var(--panel-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* --- Instruction Tooltip & Controls --- */
+        .instruction-bar {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(19, 27, 46, 0.9);
+            border: 1px solid var(--card-border);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .instruction-bar strong {
+            color: var(--text-color);
+        }
+
+        .settings-panel {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(19, 27, 46, 0.9);
+            border: 1px solid var(--card-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            gap: 16px;
+            z-index: 5;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .settings-panel label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .settings-panel input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+
+    <header>
+        <h1>Spatial Rotation <span>PRO</span></h1>
+        <div class="dashboard">
+            <div class="stat-box">
+                <div class="stat-value" id="stat-timer">02:00</div>
+                <div class="stat-label">Time Remaining</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="stat-score">0</div>
+                <div class="stat-label">Matches</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="stat-acc">100%</div>
+                <div class="stat-label">Accuracy</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="instruction-bar">
+            <strong>Task:</strong> Select the 2 shapes that are <em>identical under rotation</em>. Watch out for mirrors!
+        </div>
+
+        <div id="canvas-container"></div>
+
+        <div class="settings-panel">
+            <label>
+                <input type="checkbox" id="chk-sound" checked> Sound Effects
+            </label>
+            <label>
+                <input type="checkbox" id="chk-speed" checked> Continuous Rotation
+            </label>
+        </div>
+
+        <!-- Start Overlay -->
+        <div class="overlay" id="start-overlay">
+            <div class="modal">
+                <h2>Dynamic Pair Matching</h2>
+                <p>
+                    6 3D shapes will float and continuously spin in real-time. 
+                    Identify the two objects that have identical 3D geometries (ignoring rotation). 
+                    Distractors include mirror reflections and distinct block paths.
+                </p>
+                <button class="btn" id="btn-start">Start Session</button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div class="overlay" id="end-overlay" style="display: none;">
+            <div class="modal">
+                <h2>Session Complete</h2>
+                <p id="end-summary">Score: 0 | Accuracy: 0%</p>
+                <button class="btn" id="btn-restart">Play Again</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- Audio Synthesizer (Web Audio API) ---
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            },
+            playTone(freq, duration, type = 'sine') {
+                if (!document.getElementById('chk-sound').checked || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playSuccess() {
+                this.init();
+                this.playTone(523.25, 0.15); // C5
+                setTimeout(() => this.playTone(659.25, 0.25), 100); // E5
+            },
+            playError() {
+                this.init();
+                this.playTone(180, 0.3, 'sawtooth');
+            },
+            playSelect() {
+                this.init();
+                this.playTone(440, 0.08);
+            }
+        };
+
+        // --- Session State ---
+        let sessionActive = false;
+        let sessionTimer = null;
+        let timeRemaining = 120; // 2 Minutes
+        let score = 0;
+        let totalAttempts = 0;
+        let selectedShapes = [];
+        let shapesData = []; // Metadata for the 6 active shapes
+
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#090d16');
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 0, 22);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting Setup
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(20, 30, 20);
+        scene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0x90b0d0, 0.4);
+        fillLight.position.set(-20, -10, -20);
+        scene.add(fillLight);
+
+        // Shared Geometry & Materials
+        const cubeGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+        const edgesGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
+        
+        const matDefault = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
+        const matSelected = new THREE.MeshLambertMaterial({ color: 0xf59e0b }); // Yellow highlight
+        const matCorrect = new THREE.MeshLambertMaterial({ color: 0x10b981 });  // Green
+        const matWrong = new THREE.MeshLambertMaterial({ color: 0xef4444 });    // Red
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x090d16, transparent: true, opacity: 0.6 });
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // 3x2 Grid Offsets in Viewport Space
+        const gridPositions = [
+            { x: -7.5, y: 3.8, z: 0 },
+            { x: 0,    y: 3.8, z: 0 },
+            { x: 7.5,  y: 3.8, z: 0 },
+            { x: -7.5, y: -3.8, z: 0 },
+            { x: 0,    y: -3.8, z: 0 },
+            { x: 7.5,  y: -3.8, z: 0 }
+        ];
+
+        // --- Algorithmic Path Generation ---
+        function generateComplexPath(numBlocks) {
+            const positions = [[0, 0, 0]];
+            let currentPos = [0, 0, 0];
+            const axes = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+            let currentDir = axes[Math.floor(Math.random() * axes.length)];
+
+            while (positions.length < numBlocks) {
+                let segLength = Math.floor(Math.random() * 3) + 2;
+                for (let i = 0; i < segLength && positions.length < numBlocks; i++) {
+                    currentPos = [
+                        currentPos[0] + currentDir[0],
+                        currentPos[1] + currentDir[1],
+                        currentPos[2] + currentDir[2]
+                    ];
+                    if (!positions.some(p => p[0] === currentPos[0] && p[1] === currentPos[1] && p[2] === currentPos[2])) {
+                        positions.push([...currentPos]);
+                    }
+                }
+                const orthos = axes.filter(a => (a[0] * currentDir[0] + a[1] * currentDir[1] + a[2] * currentDir[2]) === 0);
+                currentDir = orthos[Math.floor(Math.random() * orthos.length)];
+            }
+            return positions;
+        }
+
+        function createShapeGroup(positions, material) {
+            const group = new THREE.Group();
+            positions.forEach(pos => {
+                const mesh = new THREE.Mesh(cubeGeo, material);
+                mesh.position.set(...pos);
+                group.add(mesh);
+
+                const edges = new THREE.LineSegments(edgesGeo, edgeMat);
+                edges.position.set(...pos);
+                group.add(edges);
+            });
+
+            // Center geometry inside group
+            const box = new THREE.Box3().setFromObject(group);
+            const center = box.getCenter(new THREE.Vector3());
+            group.children.forEach(c => c.position.sub(center));
+            return group;
+        }
+
+        // --- Round Construction Engine ---
+        function clearShapes() {
+            shapesData.forEach(item => scene.remove(item.containerGroup));
+            shapesData = [];
+            selectedShapes = [];
+        }
+
+        function spawnRound() {
+            clearShapes();
+
+            // Scale complexity with score (Starts at 10 cubes, scales up to 18)
+            const numCubes = Math.min(10 + Math.floor(score / 2), 18);
+
+            // Generate geometries
+            const pathA = generateComplexPath(numCubes);
+            const pathAMirror = pathA.map(p => [-p[0], p[1], p[2]]); // Chiral mirror distractor
+            const pathB = generateComplexPath(numCubes);
+            const pathBMirror = pathB.map(p => [-p[0], p[1], p[2]]);
+            const pathC = generateComplexPath(numCubes);
+
+            const pathDefs = [
+                { path: pathA, matchId: 'TARGET_A' },
+                { path: pathA, matchId: 'TARGET_A' }, // Exact pair match
+                { path: pathAMirror, matchId: 'MIRROR_A' },
+                { path: pathB, matchId: 'DISTRACTOR_B' },
+                { path: pathBMirror, matchId: 'MIRROR_B' },
+                { path: pathC, matchId: 'DISTRACTOR_C' }
+            ];
+
+            // Shuffle grid slots
+            pathDefs.sort(() => Math.random() - 0.5);
+
+            pathDefs.forEach((def, index) => {
+                const innerGroup = createShapeGroup(def.path, matDefault);
+                const containerGroup = new THREE.Group();
+                containerGroup.add(innerGroup);
+
+                // Position in grid
+                const pos = gridPositions[index];
+                containerGroup.position.set(pos.x, pos.y, pos.z);
+
+                // Initial random orientation
+                innerGroup.rotation.set(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                );
+
+                // Multi-axis rotation velocity (Speed scales slightly with score)
+                const speedScale = 0.008 + Math.min(score * 0.001, 0.012);
+                const rotVelocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale
+                );
+
+                scene.add(containerGroup);
+
+                shapesData.push({
+                    id: index,
+                    matchId: def.matchId,
+                    containerGroup,
+                    innerGroup,
+                    rotVelocity,
+                    meshes: innerGroup.children.filter(c => c.isMesh)
+                });
+            });
+        }
+
+        // --- User Interaction & Selection Logic ---
+        function onPointerDown(event) {
+            if (!sessionActive || selectedShapes.length >= 2) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Collect all meshes for raycasting
+            let allMeshes = [];
+            shapesData.forEach(s => allMeshes.push(...s.meshes));
+
+            const intersects = raycaster.intersectObjects(allMeshes);
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                // Find parent shape container
+                const targetShape = shapesData.find(s => s.innerGroup.children.includes(hitMesh));
+
+                if (targetShape && !selectedShapes.includes(targetShape)) {
+                    AudioEngine.playSelect();
+                    setShapeMaterial(targetShape, matSelected);
+                    selectedShapes.push(targetShape);
+
+                    if (selectedShapes.length === 2) {
+                        evaluateSelection();
+                    }
+                }
+            }
+        }
+
+        function setShapeMaterial(shapeItem, material) {
+            shapeItem.meshes.forEach(m => m.material = material);
+        }
+
+        function evaluateSelection() {
+            totalAttempts++;
+            const [shape1, shape2] = selectedShapes;
+
+            const isMatch = (shape1.matchId === 'TARGET_A' && shape2.matchId === 'TARGET_A');
+
+            if (isMatch) {
+                AudioEngine.playSuccess();
+                setShapeMaterial(shape1, matCorrect);
+                setShapeMaterial(shape2, matCorrect);
+                score++;
+                updateDashboard();
+
+                setTimeout(() => {
+                    if (sessionActive) spawnRound();
+                }, 600);
+            } else {
+                AudioEngine.playError();
+                setShapeMaterial(shape1, matWrong);
+                setShapeMaterial(shape2, matWrong);
+                updateDashboard();
+
+                // Highlight correct pair as feedback
+                const correctPair = shapesData.filter(s => s.matchId === 'TARGET_A');
+                correctPair.forEach(s => setShapeMaterial(s, matCorrect));
+
+                setTimeout(() => {
+                    if (sessionActive) spawnRound();
+                }, 1600);
+            }
+        }
+
+        // --- Dashboard & Timer ---
+        function updateDashboard() {
+            document.getElementById('stat-score').innerText = score;
+            const acc = totalAttempts === 0 ? 100 : Math.round((score / totalAttempts) * 100);
+            document.getElementById('stat-acc').innerText = `${acc}%`;
+
+            const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const secs = (timeRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('stat-timer').innerText = `${mins}:${secs}`;
+        }
+
+        function startSession() {
+            sessionActive = true;
+            score = 0;
+            totalAttempts = 0;
+            timeRemaining = 120;
+            updateDashboard();
+
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('end-overlay').style.display = 'none';
+
+            spawnRound();
+
+            clearInterval(sessionTimer);
+            sessionTimer = setInterval(() => {
+                timeRemaining--;
+                updateDashboard();
+                if (timeRemaining <= 0) {
+                    endSession();
+                }
+            }, 1000);
+        }
+
+        function endSession() {
+            sessionActive = false;
+            clearInterval(sessionTimer);
+            clearShapes();
+
+            const acc = totalAttempts === 0 ? 0 : Math.round((score / totalAttempts) * 100);
+            document.getElementById('end-summary').innerText = `Total Solved: ${score} | Accuracy: ${acc}%`;
+            document.getElementById('end-overlay').style.display = 'flex';
+        }
+
+        // --- Main Render Loop ---
+        const enableRotationChk = document.getElementById('chk-speed');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Continuous Rotation Engine
+            if (enableRotationChk.checked) {
+                shapesData.forEach(item => {
+                    item.innerGroup.rotation.x += item.rotVelocity.x;
+                    item.innerGroup.rotation.y += item.rotVelocity.y;
+                    item.innerGroup.rotation.z += item.rotVelocity.z;
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // --- Event Listeners & Responsiveness ---
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        document.getElementById('btn-start').addEventListener('click', startSession);
+        document.getElementById('btn-restart').addEventListener('click', startSession);
+
+        // Init frame
+        animate();
+    </script>
+</body>
+
+</html>
