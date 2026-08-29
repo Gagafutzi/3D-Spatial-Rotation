@@ -1,10 +1,29 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Advanced Dynamic Spatial Rotation Trainer</title>
+
+    <!--
+        Three.js import map.
+
+        IMPORTANT:
+        Three.js and OrbitControls use the EXACT SAME VERSION.
+        This avoids the "THREE.OrbitControls is not a constructor"
+        problem caused by mixing module and non-module builds.
+    -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
 
     <style>
         :root {
@@ -24,164 +43,303 @@
             user-select: none;
         }
 
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             margin: 0;
             padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+
             display: flex;
             flex-direction: column;
+
             height: 100vh;
+            height: 100dvh;
+
             overflow: hidden;
         }
 
-        /* --- Header & Dashboard --- */
+        /* ============================================================
+           HEADER
+           ============================================================ */
+
         header {
             padding: 12px 24px;
+
             background: var(--panel-bg);
-            border-bottom: 1px solid var(--card-border);
+
+            border-bottom:
+                1px solid var(--card-border);
+
             display: flex;
             justify-content: space-between;
             align-items: center;
+
             z-index: 10;
+
             height: 64px;
+
+            flex-shrink: 0;
         }
 
         h1 {
             margin: 0;
+
             font-size: 18px;
             font-weight: 700;
+
             display: flex;
             align-items: center;
+
             gap: 10px;
+
+            white-space: nowrap;
         }
 
         h1 span {
             font-size: 11px;
+
             background: var(--accent);
+
             padding: 3px 8px;
+
             border-radius: 12px;
+
             color: white;
+
             text-transform: uppercase;
         }
 
         .dashboard {
             display: flex;
+
             gap: 24px;
+
             align-items: center;
+
+            min-width: 0;
         }
 
         .stat-box {
             display: flex;
+
             flex-direction: column;
+
             align-items: flex-end;
+
+            flex-shrink: 0;
         }
 
         .stat-value {
             color: var(--accent);
+
             font-size: 20px;
+
             font-weight: 700;
+
             font-family: monospace;
+
+            white-space: nowrap;
         }
 
         .stat-label {
             color: var(--text-muted);
+
             font-size: 10px;
+
             text-transform: uppercase;
+
             letter-spacing: 0.5px;
         }
 
-        /* --- Workspace Layout --- */
+        /* ============================================================
+           WORKSPACE
+           ============================================================ */
+
         main {
             position: relative;
+
             flex: 1;
+
             width: 100%;
-            height: calc(100vh - 64px);
+
+            min-height: 0;
+
             overflow: hidden;
         }
 
         #canvas-container {
+            position: absolute;
+
+            inset: 0;
+
             width: 100%;
             height: 100%;
+
             cursor: grab;
+
             touch-action: none;
+
+            overflow: hidden;
         }
 
         #canvas-container:active {
             cursor: grabbing;
         }
 
-        /* --- Overlay Panels --- */
+        #canvas-container canvas {
+            display: block;
+
+            width: 100%;
+            height: 100%;
+
+            touch-action: none;
+        }
+
+        /* ============================================================
+           OVERLAYS
+           ============================================================ */
+
         .overlay {
             position: absolute;
+
             inset: 0;
-            background: rgba(9, 13, 22, 0.88);
+
+            background:
+                rgba(9, 13, 22, 0.88);
+
             backdrop-filter: blur(8px);
+
             display: flex;
+
             flex-direction: column;
+
             justify-content: center;
+
             align-items: center;
+
             z-index: 30;
+
             text-align: center;
+
             padding: 20px;
         }
 
         .modal {
             background: var(--panel-bg);
-            border: 1px solid var(--card-border);
+
+            border:
+                1px solid var(--card-border);
+
             border-radius: 16px;
+
             padding: 32px;
+
             max-width: 480px;
+
             width: 100%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+
+            box-shadow:
+                0 20px 40px
+                rgba(0, 0, 0, 0.5);
         }
 
         .modal h2 {
             margin-top: 0;
+
             font-size: 22px;
         }
 
         .modal p {
             color: var(--text-muted);
+
             font-size: 14px;
+
             line-height: 1.5;
+
             margin-bottom: 24px;
         }
 
         .btn {
             background: var(--accent);
+
             color: white;
+
             border: none;
+
             padding: 12px 28px;
+
             font-size: 15px;
+
             font-weight: 600;
+
             border-radius: 8px;
+
             cursor: pointer;
-            transition: all 0.2s ease;
+
+            transition:
+                all 0.2s ease;
+
             width: 100%;
         }
 
         .btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
+            background:
+                var(--accent-hover);
+
+            transform:
+                translateY(-1px);
         }
 
-        /* --- Instruction Tooltip & Controls --- */
+        /* ============================================================
+           INSTRUCTION
+           ============================================================ */
+
         .instruction-bar {
             position: absolute;
+
             top: 16px;
+
             left: 50%;
-            transform: translateX(-50%);
-            background: rgba(19, 27, 46, 0.9);
-            border: 1px solid var(--card-border);
+
+            transform:
+                translateX(-50%);
+
+            background:
+                rgba(19, 27, 46, 0.9);
+
+            border:
+                1px solid var(--card-border);
+
             padding: 10px 20px;
+
             border-radius: 20px;
+
             font-size: 13px;
+
             color: var(--text-muted);
+
             pointer-events: none;
+
             z-index: 5;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+
+            box-shadow:
+                0 4px 12px
+                rgba(0, 0, 0, 0.3);
+
             white-space: nowrap;
         }
 
@@ -189,69 +347,111 @@
             color: var(--text-color);
         }
 
+        /* ============================================================
+           SETTINGS
+           ============================================================ */
+
         .settings-panel {
             position: absolute;
+
             bottom: 16px;
             right: 16px;
-            background: rgba(19, 27, 46, 0.9);
-            border: 1px solid var(--card-border);
+
+            background:
+                rgba(19, 27, 46, 0.9);
+
+            border:
+                1px solid var(--card-border);
+
             padding: 12px 16px;
+
             border-radius: 12px;
+
             display: flex;
+
             gap: 16px;
+
             z-index: 5;
+
             font-size: 12px;
+
             align-items: center;
+
             flex-wrap: wrap;
         }
 
         .settings-panel label {
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
             color: var(--text-muted);
+
             cursor: pointer;
         }
 
         .settings-panel input[type="checkbox"] {
-            accent-color: var(--accent);
+            accent-color:
+                var(--accent);
         }
 
         .settings-control {
             display: flex;
+
             align-items: center;
+
             gap: 8px;
+
             color: var(--text-muted);
+
             white-space: nowrap;
         }
 
         .settings-control input[type="range"] {
             width: 110px;
-            accent-color: var(--accent);
+
+            accent-color:
+                var(--accent);
+
             cursor: pointer;
         }
 
         .settings-control input[type="number"] {
             width: 58px;
+
             padding: 5px 6px;
-            border: 1px solid var(--card-border);
+
+            border:
+                1px solid var(--card-border);
+
             border-radius: 6px;
+
             background: #0b1220;
+
             color: var(--text-color);
+
             font: inherit;
         }
 
         .settings-value {
             min-width: 38px;
+
             color: var(--text-color);
+
             font-weight: 700;
+
             text-align: right;
         }
 
         .community-link {
             color: var(--text-muted);
+
             text-decoration: none;
+
             font-size: 12px;
+
             white-space: nowrap;
         }
 
@@ -261,28 +461,39 @@
 
         .session-button {
             width: auto;
+
             min-width: 120px;
+
             padding: 9px 16px;
+
             font-size: 12px;
         }
 
-        /* --- Responsive Mobile Layout --- */
+        /* ============================================================
+           MOBILE
+           ============================================================ */
+
         @media (max-width: 900px) {
+
             header {
                 padding: 10px 14px;
+
                 height: auto;
+
                 min-height: 64px;
+
                 gap: 10px;
             }
 
             h1 {
                 font-size: 16px;
-                flex-shrink: 0;
             }
 
             .dashboard {
                 gap: 10px;
+
                 flex-wrap: wrap;
+
                 justify-content: flex-end;
             }
 
@@ -294,23 +505,31 @@
                 font-size: 16px;
             }
 
-            main {
-                height: calc(100vh - 64px);
-            }
-
             .instruction-bar {
                 top: 10px;
-                max-width: calc(100% - 24px);
+
+                max-width:
+                    calc(100% - 24px);
+
                 padding: 8px 12px;
+
                 font-size: 11px;
+
+                overflow: hidden;
+
+                text-overflow: ellipsis;
             }
 
             .settings-panel {
                 left: 10px;
                 right: 10px;
+
                 bottom: 10px;
+
                 justify-content: center;
+
                 gap: 9px 12px;
+
                 padding: 9px 10px;
             }
 
@@ -320,6 +539,7 @@
         }
 
         @media (max-width: 600px) {
+
             header {
                 align-items: flex-start;
             }
@@ -338,7 +558,9 @@
 
             .session-button {
                 min-width: 96px;
-                padding: 8px 10px;
+
+                padding:
+                    8px 10px;
             }
 
             .settings-panel {
@@ -349,84 +571,185 @@
                 width: 50px;
             }
         }
+
+        @media (orientation: portrait) and (max-width: 600px) {
+
+            .settings-panel {
+                max-height: 92px;
+
+                overflow-y: auto;
+            }
+
+            .instruction-bar {
+                max-width:
+                    calc(100% - 20px);
+            }
+        }
     </style>
-
-    <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <!-- Three.js OrbitControls -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/controls/OrbitControls.js"></script>
 </head>
 
 <body>
 
+    <!-- ============================================================
+         HEADER
+         ============================================================ -->
+
     <header>
-        <h1>Spatial Rotation <span>PRO</span></h1>
+
+        <h1>
+            Spatial Rotation
+            <span>PRO</span>
+        </h1>
 
         <div class="dashboard">
-            <a class="community-link"
-               href="https://discord.gg/brain"
-               target="_blank"
-               rel="noopener noreferrer">
+
+            <a
+                class="community-link"
+                href="https://discord.gg/brain"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
                 Join MINDBUILDING Community
             </a>
 
-            <button class="btn session-button" id="btn-session-toggle">
+            <button
+                class="btn session-button"
+                id="btn-session-toggle"
+            >
                 Start Session
             </button>
 
             <div class="stat-box">
-                <div class="stat-value" id="stat-timer">00:12</div>
-                <div class="stat-label">Trial Time</div>
+
+                <div
+                    class="stat-value"
+                    id="stat-timer"
+                >
+                    00:12
+                </div>
+
+                <div class="stat-label">
+                    Trial Time
+                </div>
+
             </div>
 
             <div class="stat-box">
-                <div class="stat-value" id="stat-trial">1/30</div>
-                <div class="stat-label">Trial</div>
+
+                <div
+                    class="stat-value"
+                    id="stat-trial"
+                >
+                    #0 • 02:00
+                </div>
+
+                <div class="stat-label">
+                    Trial
+                </div>
+
             </div>
 
             <div class="stat-box">
-                <div class="stat-value" id="stat-score">0</div>
-                <div class="stat-label">Matches</div>
+
+                <div
+                    class="stat-value"
+                    id="stat-score"
+                >
+                    0
+                </div>
+
+                <div class="stat-label">
+                    Matches
+                </div>
+
             </div>
 
             <div class="stat-box">
-                <div class="stat-value" id="stat-acc">100%</div>
-                <div class="stat-label">Accuracy</div>
+
+                <div
+                    class="stat-value"
+                    id="stat-acc"
+                >
+                    100%
+                </div>
+
+                <div class="stat-label">
+                    Accuracy
+                </div>
+
             </div>
+
         </div>
+
     </header>
+
+
+    <!-- ============================================================
+         MAIN
+         ============================================================ -->
 
     <main>
 
         <div class="instruction-bar">
+
             <strong>Task:</strong>
+
             Select the 2 shapes that are
             <em>identical under rotation</em>.
+
             Watch out for mirrors!
+
+            <span style="margin-left:12px;">
+                Drag to move • Scroll/pinch to zoom
+            </span>
+
         </div>
 
+
         <div id="canvas-container"></div>
+
+
+        <!-- ========================================================
+             SETTINGS
+             ======================================================== -->
 
         <div class="settings-panel">
 
             <label>
-                <input type="checkbox" id="chk-sound" checked>
+                <input
+                    type="checkbox"
+                    id="chk-sound"
+                    checked
+                >
                 Sound Effects
             </label>
 
+
             <label>
-                <input type="checkbox" id="chk-speed" checked>
+                <input
+                    type="checkbox"
+                    id="chk-speed"
+                    checked
+                >
                 Continuous Rotation
             </label>
 
+
             <label>
-                <input type="checkbox" id="chk-adaptive" checked>
+                <input
+                    type="checkbox"
+                    id="chk-adaptive"
+                    checked
+                >
                 Adaptive Difficulty
             </label>
 
+
             <div class="settings-control">
-                <span>Rotation Speed</span>
+
+                <span>
+                    Rotation Speed
+                </span>
 
                 <input
                     type="range"
@@ -438,13 +761,21 @@
                     aria-label="Rotation speed"
                 >
 
-                <span class="settings-value" id="rotation-speed-value">
+                <span
+                    class="settings-value"
+                    id="rotation-speed-value"
+                >
                     100%
                 </span>
+
             </div>
 
+
             <div class="settings-control">
-                <span>Session (min)</span>
+
+                <span>
+                    Session (min)
+                </span>
 
                 <input
                     type="number"
@@ -455,25 +786,39 @@
                     step="1"
                     aria-label="Session duration in minutes"
                 >
+
             </div>
 
         </div>
 
-        <!-- Start Overlay -->
-        <div class="overlay" id="start-overlay">
+
+        <!-- ========================================================
+             START OVERLAY
+             ======================================================== -->
+
+        <div
+            class="overlay"
+            id="start-overlay"
+        >
 
             <div class="modal">
 
-                <h2>Dynamic Pair Matching</h2>
+                <h2>
+                    Dynamic Pair Matching
+                </h2>
 
                 <p>
-                    6 3D shapes will float and continuously spin in real-time.
-                    Identify the two objects that have identical 3D geometries
-                    (ignoring rotation).
-                    Distractors include mirror reflections and distinct block paths.
+                    6 3D shapes will float and continuously spin
+                    in real-time. Identify the two objects that
+                    have identical 3D geometries (ignoring rotation).
+                    Distractors include mirror reflections and
+                    distinct block paths.
                 </p>
 
-                <button class="btn" id="btn-start">
+                <button
+                    class="btn"
+                    id="btn-start"
+                >
                     Start Session
                 </button>
 
@@ -481,18 +826,31 @@
 
         </div>
 
-        <!-- Game Over Overlay -->
-        <div class="overlay" id="end-overlay" style="display: none;">
+
+        <!-- ========================================================
+             END OVERLAY
+             ======================================================== -->
+
+        <div
+            class="overlay"
+            id="end-overlay"
+            style="display:none;"
+        >
 
             <div class="modal">
 
-                <h2>Session Complete</h2>
+                <h2>
+                    Session Complete
+                </h2>
 
                 <p id="end-summary">
                     Score: 0 | Accuracy: 0%
                 </p>
 
-                <button class="btn" id="btn-restart">
+                <button
+                    class="btn"
+                    id="btn-restart"
+                >
                     Play Again
                 </button>
 
@@ -502,7 +860,38 @@
 
     </main>
 
-    <script>
+
+    <!-- ================================================================
+         MAIN THREE.JS MODULE
+         ================================================================ -->
+
+    <script type="module">
+
+        /*
+         * IMPORTANT:
+         *
+         * This is now a real ES module.
+         *
+         * Three.js and OrbitControls are imported from the same
+         * Three.js release through the import map above.
+         *
+         * This means we use:
+         *
+         *     new OrbitControls(...)
+         *
+         * NOT:
+         *
+         *     new THREE.OrbitControls(...)
+         *
+         * ============================================================
+         */
+
+        import * as THREE from 'three';
+
+        import {
+            OrbitControls
+        } from 'three/addons/controls/OrbitControls.js';
+
 
         // ============================================================
         // AUDIO ENGINE
@@ -515,20 +904,39 @@
             init() {
 
                 if (!this.ctx) {
+
                     this.ctx =
-                        new (window.AudioContext ||
-                            window.webkitAudioContext)();
+                        new (
+                            window.AudioContext ||
+                            window.webkitAudioContext
+                        )();
+
                 }
 
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume().catch(() => {});
+                if (
+                    this.ctx.state ===
+                    'suspended'
+                ) {
+
+                    this.ctx
+                        .resume()
+                        .catch(() => {});
+
                 }
             },
 
-            playTone(freq, duration, type = 'sine') {
+
+            playTone(
+                freq,
+                duration,
+                type = 'sine'
+            ) {
 
                 const soundCheckbox =
-                    document.getElementById('chk-sound');
+                    document.getElementById(
+                        'chk-sound'
+                    );
+
 
                 if (
                     !soundCheckbox ||
@@ -538,43 +946,77 @@
                     return;
                 }
 
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
+
+                const osc =
+                    this.ctx.createOscillator();
+
+
+                const gain =
+                    this.ctx.createGain();
+
 
                 osc.type = type;
+
 
                 osc.frequency.setValueAtTime(
                     freq,
                     this.ctx.currentTime
                 );
 
+
                 gain.gain.setValueAtTime(
                     0.15,
                     this.ctx.currentTime
                 );
 
+
                 gain.gain.exponentialRampToValueAtTime(
                     0.001,
-                    this.ctx.currentTime + duration
+                    this.ctx.currentTime +
+                    duration
                 );
 
+
                 osc.connect(gain);
-                gain.connect(this.ctx.destination);
+
+                gain.connect(
+                    this.ctx.destination
+                );
+
 
                 osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+
+
+                osc.stop(
+                    this.ctx.currentTime +
+                    duration
+                );
             },
+
 
             playSuccess() {
 
                 this.init();
 
-                this.playTone(523.25, 0.15);
+                this.playTone(
+                    523.25,
+                    0.15
+                );
 
-                setTimeout(() => {
-                    this.playTone(659.25, 0.25);
-                }, 100);
+
+                setTimeout(
+                    () => {
+
+                        this.playTone(
+                            659.25,
+                            0.25
+                        );
+
+                    },
+                    100
+                );
             },
+
 
             playError() {
 
@@ -587,6 +1029,7 @@
                 );
             },
 
+
             playSelect() {
 
                 this.init();
@@ -596,6 +1039,7 @@
                     0.08
                 );
             }
+
         };
 
 
@@ -606,21 +1050,27 @@
         let sessionActive = false;
 
         let trialTimer = null;
+
         let sessionTimer = null;
 
         let trialTimeRemaining = 12;
+
         let sessionTimeRemaining = 120;
 
         let trialStartTime = 0;
+
         let trialNumber = 0;
 
         let score = 0;
+
         let totalAttempts = 0;
 
         let selectedShapes = [];
+
         let shapesData = [];
 
         let adaptiveLevel = 0;
+
         let adaptiveHistory = [];
 
         let currentTrialResolved = false;
@@ -635,32 +1085,53 @@
         // ============================================================
 
         const container =
-            document.getElementById('canvas-container');
+            document.getElementById(
+                'canvas-container'
+            );
 
-        const scene = new THREE.Scene();
+
+        const scene =
+            new THREE.Scene();
+
 
         scene.background =
-            new THREE.Color('#090d16');
+            new THREE.Color(
+                '#090d16'
+            );
 
 
-        // ------------------------------------------------------------
+        // ============================================================
         // CAMERA
-        // ------------------------------------------------------------
+        // ============================================================
+
+        const initialWidth =
+            Math.max(
+                1,
+                container.clientWidth
+            );
+
+
+        const initialHeight =
+            Math.max(
+                1,
+                container.clientHeight
+            );
+
 
         const camera =
             new THREE.PerspectiveCamera(
+
                 45,
-                Math.max(
-                    1,
-                    container.clientWidth
-                ) /
-                Math.max(
-                    1,
-                    container.clientHeight
-                ),
+
+                initialWidth /
+                initialHeight,
+
                 0.1,
+
                 1000
+
             );
+
 
         camera.position.set(
             0,
@@ -669,19 +1140,20 @@
         );
 
 
-        // ------------------------------------------------------------
+        // ============================================================
         // RENDERER
-        // ------------------------------------------------------------
+        // ============================================================
 
         const renderer =
             new THREE.WebGLRenderer({
-                antialias: true
+
+                antialias: true,
+
+                powerPreference:
+                    'high-performance'
+
             });
 
-        renderer.setSize(
-            container.clientWidth,
-            container.clientHeight
-        );
 
         renderer.setPixelRatio(
             Math.min(
@@ -689,6 +1161,14 @@
                 2
             )
         );
+
+
+        renderer.setSize(
+            initialWidth,
+            initialHeight,
+            false
+        );
+
 
         container.appendChild(
             renderer.domElement
@@ -700,47 +1180,58 @@
         // ============================================================
 
         /*
-         * OrbitControls handles:
+         * Official OrbitControls behavior:
          *
-         * Desktop:
-         *   Left mouse   = orbit
-         *   Wheel        = zoom
-         *   Right mouse  = pan
+         * Left mouse / one finger:
+         *     Orbit
          *
-         * Touch:
-         *   One finger  = orbit
-         *   Two fingers = pan / zoom
+         * Mouse wheel / two-finger pinch:
+         *     Zoom
          *
-         * screenSpacePanning keeps panning intuitive for this
-         * front-facing spatial-training layout.
+         * Right mouse / two fingers:
+         *     Pan
+         *
+         * This is the documented OrbitControls interaction model.
          */
 
         const controls =
-            new THREE.OrbitControls(
+            new OrbitControls(
                 camera,
                 renderer.domElement
             );
 
+
         controls.enableDamping = true;
+
         controls.dampingFactor = 0.08;
 
+
         controls.enableZoom = true;
+
         controls.enablePan = true;
+
 
         controls.screenSpacePanning = true;
 
+
         controls.rotateSpeed = 0.55;
+
         controls.zoomSpeed = 0.9;
+
         controls.panSpeed = 0.8;
 
+
         controls.minDistance = 8;
+
         controls.maxDistance = 60;
+
 
         controls.target.set(
             0,
             0,
             0
         );
+
 
         controls.update();
 
@@ -756,11 +1247,13 @@
             )
         );
 
+
         const dirLight =
             new THREE.DirectionalLight(
                 0xffffff,
                 0.7
             );
+
 
         dirLight.position.set(
             20,
@@ -768,7 +1261,11 @@
             20
         );
 
-        scene.add(dirLight);
+
+        scene.add(
+            dirLight
+        );
+
 
         const fillLight =
             new THREE.DirectionalLight(
@@ -776,17 +1273,21 @@
                 0.4
             );
 
+
         fillLight.position.set(
             -20,
             -10,
             -20
         );
 
-        scene.add(fillLight);
+
+        scene.add(
+            fillLight
+        );
 
 
         // ============================================================
-        // SHARED GEOMETRY & MATERIALS
+        // SHARED GEOMETRY
         // ============================================================
 
         const cubeGeo =
@@ -795,6 +1296,7 @@
                 0.96,
                 0.96
             );
+
 
         const edgesGeo =
             new THREE.EdgesGeometry(
@@ -805,69 +1307,80 @@
                 )
             );
 
+
+        // ============================================================
+        // MATERIALS
+        // ============================================================
+
         const matDefault =
             new THREE.MeshLambertMaterial({
                 color: 0xe2e8f0
             });
+
 
         const matSelected =
             new THREE.MeshLambertMaterial({
                 color: 0xf59e0b
             });
 
+
         const matCorrect =
             new THREE.MeshLambertMaterial({
                 color: 0x10b981
             });
+
 
         const matWrong =
             new THREE.MeshLambertMaterial({
                 color: 0xef4444
             });
 
+
         const edgeMat =
             new THREE.LineBasicMaterial({
+
                 color: 0x090d16,
+
                 transparent: true,
+
                 opacity: 0.6
+
             });
 
 
         // ============================================================
-        // RAYCASTING
+        // RAYCASTER
         // ============================================================
 
         const raycaster =
             new THREE.Raycaster();
+
 
         const mouse =
             new THREE.Vector2();
 
 
         // ============================================================
-        // RESPONSIVE 3 x 2 WORLD LAYOUT
+        // RESPONSIVE GRID
         // ============================================================
-
-        /*
-         * The original implementation used:
-         *
-         *   x = -7.5, 0, +7.5
-         *   y = -3.8, +3.8
-         *
-         * Those values are not viewport-aware. On a narrow portrait
-         * display the perspective camera simply cannot see all three
-         * columns.
-         *
-         * Instead, the layout is calculated from the camera frustum.
-         *
-         * The camera remains perspective-based, but the grid spreads
-         * only as far as the currently visible world area allows.
-         */
 
         let gridPositions = [];
 
+
         let responsiveShapeLimit = 4.8;
 
+
+        /*
+         * Calculate the world-space grid based on the current
+         * viewport aspect ratio.
+         *
+         * The original fixed values:
+         *
+         *     -7.5 / 0 / +7.5
+         *     -3.8 / +3.8
+         *
+         * are deliberately removed.
+         */
 
         function updateResponsiveLayout() {
 
@@ -877,54 +1390,57 @@
                     container.clientWidth
                 );
 
+
             const height =
                 Math.max(
                     1,
                     container.clientHeight
                 );
 
-            const aspect =
+
+            camera.aspect =
                 width / height;
 
-
-            camera.aspect = aspect;
 
             camera.updateProjectionMatrix();
 
 
             /*
-             * Determine the visible world dimensions at the default
-             * reference distance.
+             * The objects are positioned around the camera's
+             * default focal distance.
              */
 
-            const referenceDistance = 22;
+            const referenceDistance =
+                22;
+
 
             const halfHeight =
                 referenceDistance *
                 Math.tan(
                     THREE.MathUtils.degToRad(
-                        camera.fov * 0.5
+                        camera.fov *
+                        0.5
                     )
                 );
 
+
             const halfWidth =
-                halfHeight * aspect;
+                halfHeight *
+                camera.aspect;
 
 
             /*
              * Safe viewport area.
-             *
-             * The margins keep shapes away from the physical edge
-             * of the screen.
              */
 
-            const safeW =
+            const safeWidth =
                 Math.max(
                     3.2,
-                    halfWidth - 0.65
+                    halfWidth - 0.7
                 );
 
-            const safeH =
+
+            const safeHeight =
                 Math.max(
                     3.0,
                     halfHeight - 1.0
@@ -932,33 +1448,38 @@
 
 
             /*
-             * Horizontal spacing.
+             * Responsive column spacing.
              *
-             * On desktop this can approach the original wide layout.
-             * On portrait displays it automatically contracts.
+             * Portrait screens automatically contract.
              */
 
             const columnSpread =
                 Math.min(
+
                     6.9,
+
                     Math.max(
                         2.25,
-                        safeW * 0.72
+                        safeWidth * 0.72
                     )
+
                 );
 
 
             /*
-             * Vertical spacing.
+             * Responsive row spacing.
              */
 
             const rowSpread =
                 Math.min(
+
                     3.65,
+
                     Math.max(
                         1.9,
-                        safeH * 0.48
+                        safeHeight * 0.48
                     )
+
                 );
 
 
@@ -1004,16 +1525,18 @@
 
 
             /*
-             * A generated structure can itself be several cubes wide.
+             * Responsive shape size.
              *
-             * Therefore positioning alone is not enough.
-             *
-             * Calculate a responsive maximum display size so the
-             * generated structure remains inside its grid cell.
+             * This is especially important on portrait displays
+             * because the generated 3D structures themselves can
+             * occupy multiple world units.
              */
 
             const horizontalCell =
-                (columnSpread * 2) / 3;
+                (
+                    columnSpread * 2
+                ) / 3;
+
 
             const verticalCell =
                 rowSpread * 2;
@@ -1049,20 +1572,24 @@
 
 
         // ============================================================
-        // ALGORITHMIC PATH GENERATION
+        // PATH GENERATION
         // ============================================================
 
-        function generateComplexPath(numBlocks) {
+        function generateComplexPath(
+            numBlocks
+        ) {
 
             const positions = [
                 [0, 0, 0]
             ];
+
 
             let currentPos = [
                 0,
                 0,
                 0
             ];
+
 
             const axes = [
 
@@ -1076,6 +1603,7 @@
                 [0, 0, -1]
 
             ];
+
 
             let currentDir =
                 axes[
@@ -1099,21 +1627,24 @@
 
                 for (
                     let i = 0;
+
                     i < segLength &&
-                    positions.length < numBlocks;
+                    positions.length <
+                        numBlocks;
+
                     i++
                 ) {
 
                     const candidate = [
 
                         currentPos[0] +
-                        currentDir[0],
+                            currentDir[0],
 
                         currentPos[1] +
-                        currentDir[1],
+                            currentDir[1],
 
                         currentPos[2] +
-                        currentDir[2]
+                            currentDir[2]
 
                     ];
 
@@ -1121,18 +1652,24 @@
                     if (
                         !positions.some(
                             p =>
-                                p[0] === candidate[0] &&
-                                p[1] === candidate[1] &&
-                                p[2] === candidate[2]
+                                p[0] ===
+                                    candidate[0] &&
+                                p[1] ===
+                                    candidate[1] &&
+                                p[2] ===
+                                    candidate[2]
                         )
                     ) {
 
                         currentPos =
                             candidate;
 
-                        positions.push([
-                            ...currentPos
-                        ]);
+
+                        positions.push(
+                            [
+                                ...currentPos
+                            ]
+                        );
 
                     } else {
 
@@ -1145,38 +1682,53 @@
                 const occupied =
                     new Set(
                         positions.map(
-                            p => p.join(',')
+                            p =>
+                                p.join(',')
                         )
                     );
 
 
                 const availableDirections =
-                    axes.filter(a => {
+                    axes.filter(
+                        a => {
 
-                        const next = [
+                            const next = [
 
-                            currentPos[0] + a[0],
-                            currentPos[1] + a[1],
-                            currentPos[2] + a[2]
+                                currentPos[0] +
+                                    a[0],
 
-                        ];
+                                currentPos[1] +
+                                    a[1],
 
-                        return !occupied.has(
-                            next.join(',')
-                        );
+                                currentPos[2] +
+                                    a[2]
 
-                    });
+                            ];
+
+
+                            return !occupied.has(
+                                next.join(',')
+                            );
+
+                        }
+                    );
 
 
                 const orthos =
-                    availableDirections.filter(a =>
+                    availableDirections.filter(
+                        a =>
 
-                        (
-                            a[0] * currentDir[0] +
-                            a[1] * currentDir[1] +
-                            a[2] * currentDir[2]
-                        ) === 0
+                            (
+                                a[0] *
+                                    currentDir[0] +
 
+                                a[1] *
+                                    currentDir[1] +
+
+                                a[2] *
+                                    currentDir[2]
+
+                            ) === 0
                     );
 
 
@@ -1186,7 +1738,9 @@
                         : availableDirections;
 
 
-                if (!candidates.length) {
+                if (
+                    !candidates.length
+                ) {
 
                     const restart =
                         positions[
@@ -1196,8 +1750,10 @@
                             )
                         ];
 
+
                     currentPos =
                         [...restart];
+
 
                     currentDir =
                         axes[
@@ -1206,6 +1762,7 @@
                                 axes.length
                             )
                         ];
+
 
                     continue;
                 }
@@ -1238,34 +1795,44 @@
                 new THREE.Group();
 
 
-            positions.forEach(pos => {
+            positions.forEach(
+                pos => {
 
-                const mesh =
-                    new THREE.Mesh(
-                        cubeGeo,
-                        material
+                    const mesh =
+                        new THREE.Mesh(
+                            cubeGeo,
+                            material
+                        );
+
+
+                    mesh.position.set(
+                        ...pos
                     );
 
-                mesh.position.set(
-                    ...pos
-                );
 
-                group.add(mesh);
-
-
-                const edges =
-                    new THREE.LineSegments(
-                        edgesGeo,
-                        edgeMat
+                    group.add(
+                        mesh
                     );
 
-                edges.position.set(
-                    ...pos
-                );
 
-                group.add(edges);
+                    const edges =
+                        new THREE.LineSegments(
+                            edgesGeo,
+                            edgeMat
+                        );
 
-            });
+
+                    edges.position.set(
+                        ...pos
+                    );
+
+
+                    group.add(
+                        edges
+                    );
+
+                }
+            );
 
 
             /*
@@ -1274,7 +1841,10 @@
 
             const box =
                 new THREE.Box3()
-                    .setFromObject(group);
+                    .setFromObject(
+                        group
+                    );
+
 
             const center =
                 box.getCenter(
@@ -1282,29 +1852,33 @@
                 );
 
 
-            group.children.forEach(c => {
+            group.children.forEach(
+                child => {
 
-                c.position.sub(
-                    center
-                );
+                    child.position.sub(
+                        center
+                    );
 
-            });
+                }
+            );
 
 
             /*
              * Responsive scaling.
-             *
-             * This replaces the original fixed 5.0 world-unit limit.
              */
 
             const centeredBox =
                 new THREE.Box3()
-                    .setFromObject(group);
+                    .setFromObject(
+                        group
+                    );
+
 
             const size =
                 centeredBox.getSize(
                     new THREE.Vector3()
                 );
+
 
             const maxDimension =
                 Math.max(
@@ -1314,18 +1888,16 @@
                 );
 
 
-            const maxDisplaySize =
-                responsiveShapeLimit;
-
-
             if (
                 maxDimension >
-                maxDisplaySize
+                responsiveShapeLimit
             ) {
 
                 group.scale.setScalar(
-                    maxDisplaySize /
+
+                    responsiveShapeLimit /
                     maxDimension
+
                 );
 
             }
@@ -1336,24 +1908,8 @@
 
 
         // ============================================================
-        // ROUND CONSTRUCTION ENGINE
+        // DIFFICULTY
         // ============================================================
-
-        function clearShapes() {
-
-            shapesData.forEach(item => {
-
-                scene.remove(
-                    item.containerGroup
-                );
-
-            });
-
-            shapesData = [];
-
-            selectedShapes = [];
-        }
-
 
         function getDifficultySettings() {
 
@@ -1364,11 +1920,14 @@
                     )
                     .checked;
 
+
             const manualSpeed =
                 baseRotationMultiplier;
 
 
-            if (!adaptiveEnabled) {
+            if (
+                !adaptiveEnabled
+            ) {
 
                 return {
 
@@ -1395,29 +1954,38 @@
                 numCubes:
                     Math.min(
                         10 +
-                        adaptiveLevel * 2,
+                            adaptiveLevel *
+                            2,
+
                         30
                     ),
 
                 speedScale:
+
                     (
                         0.008 +
                         adaptiveLevel *
-                        0.0012
+                            0.0012
                     ) *
                     manualSpeed,
 
                 trialSeconds:
+
                     Math.max(
                         5,
+
                         12 -
-                        adaptiveLevel *
-                        0.7
+                            adaptiveLevel *
+                            0.7
                     )
 
             };
         }
 
+
+        // ============================================================
+        // ADAPTIVE DIFFICULTY
+        // ============================================================
 
         function updateAdaptiveDifficulty(
             wasCorrect,
@@ -1432,6 +2000,7 @@
                     )
                     .checked
             ) {
+
                 return;
             }
 
@@ -1442,14 +2011,20 @@
 
             const responseRatio =
                 timedOut
+
                     ? 1
+
                     : Math.min(
+
                         responseMs /
-                        (
-                            currentSettings.trialSeconds *
-                            1000
-                        ),
+                            (
+                                currentSettings
+                                    .trialSeconds *
+                                1000
+                            ),
+
                         1
+
                     );
 
 
@@ -1470,7 +2045,9 @@
                 adaptiveHistory.length >
                 5
             ) {
+
                 adaptiveHistory.shift();
+
             }
 
 
@@ -1478,7 +2055,9 @@
                 adaptiveHistory.length <
                 3
             ) {
+
                 return;
+
             }
 
 
@@ -1515,6 +2094,7 @@
                         10
                     );
 
+
                 adaptiveHistory = [];
 
             } else if (
@@ -1528,10 +2108,15 @@
                         0
                     );
 
+
                 adaptiveHistory = [];
             }
         }
 
+
+        // ============================================================
+        // TRIAL TIMER
+        // ============================================================
 
         function startTrialTimer() {
 
@@ -1560,33 +2145,43 @@
 
 
             trialTimer =
-                setInterval(() => {
+                setInterval(
+                    () => {
 
-                    trialTimeRemaining =
-                        Math.max(
-                            0,
-                            trialTimeRemaining -
-                            0.1
-                        );
-
-
-                    updateDashboard();
+                        trialTimeRemaining =
+                            Math.max(
+                                0,
+                                trialTimeRemaining -
+                                    0.1
+                            );
 
 
-                    if (
-                        trialTimeRemaining <= 0
-                    ) {
+                        updateDashboard();
 
-                        clearInterval(
-                            trialTimer
-                        );
 
-                        handleTrialTimeout();
-                    }
+                        if (
+                            trialTimeRemaining <=
+                            0
+                        ) {
 
-                }, 100);
+                            clearInterval(
+                                trialTimer
+                            );
+
+
+                            handleTrialTimeout();
+
+                        }
+
+                    },
+                    100
+                );
         }
 
+
+        // ============================================================
+        // SESSION TIMER
+        // ============================================================
 
         function startSessionTimer() {
 
@@ -1596,32 +2191,47 @@
 
 
             sessionTimer =
-                setInterval(() => {
+                setInterval(
+                    () => {
 
-                    if (!sessionActive) {
-                        return;
-                    }
+                        if (
+                            !sessionActive
+                        ) {
 
+                            return;
 
-                    sessionTimeRemaining =
-                        Math.max(
-                            0,
-                            sessionTimeRemaining - 1
-                        );
+                        }
 
 
-                    updateDashboard();
+                        sessionTimeRemaining =
+                            Math.max(
+                                0,
+                                sessionTimeRemaining -
+                                    1
+                            );
 
 
-                    if (
-                        sessionTimeRemaining <= 0
-                    ) {
-                        endSession();
-                    }
+                        updateDashboard();
 
-                }, 1000);
+
+                        if (
+                            sessionTimeRemaining <=
+                            0
+                        ) {
+
+                            endSession();
+
+                        }
+
+                    },
+                    1000
+                );
         }
 
+
+        // ============================================================
+        // TIMEOUT
+        // ============================================================
 
         function handleTrialTimeout() {
 
@@ -1629,7 +2239,9 @@
                 !sessionActive ||
                 currentTrialResolved
             ) {
+
                 return;
+
             }
 
 
@@ -1641,10 +2253,15 @@
 
 
             updateAdaptiveDifficulty(
+
                 false,
+
                 getDifficultySettings()
-                    .trialSeconds * 1000,
+                    .trialSeconds *
+                    1000,
+
                 true
+
             );
 
 
@@ -1672,30 +2289,47 @@
 
 
             roundTransitionTimeout =
-                setTimeout(() => {
+                setTimeout(
+                    () => {
 
-                    if (sessionActive) {
-                        advanceTrial();
-                    }
+                        if (
+                            sessionActive
+                        ) {
 
-                }, 800);
+                            advanceTrial();
+
+                        }
+
+                    },
+                    800
+                );
         }
 
 
+        // ============================================================
+        // ADVANCE TRIAL
+        // ============================================================
+
         function advanceTrial() {
 
-            if (!sessionActive) {
+            if (
+                !sessionActive
+            ) {
+
                 return;
+
             }
 
 
             if (
-                sessionTimeRemaining <= 0
+                sessionTimeRemaining <=
+                0
             ) {
 
                 endSession();
 
                 return;
+
             }
 
 
@@ -1705,9 +2339,37 @@
         }
 
 
+        // ============================================================
+        // CLEAR SHAPES
+        // ============================================================
+
+        function clearShapes() {
+
+            shapesData.forEach(
+                item => {
+
+                    scene.remove(
+                        item.containerGroup
+                    );
+
+                }
+            );
+
+
+            shapesData = [];
+
+            selectedShapes = [];
+        }
+
+
+        // ============================================================
+        // SPAWN ROUND
+        // ============================================================
+
         function spawnRound() {
 
             clearShapes();
+
 
             clearTimeout(
                 roundTransitionTimeout
@@ -1795,11 +2457,6 @@
             ];
 
 
-            /*
-             * Shuffle slots while preserving the six responsive
-             * positions calculated above.
-             */
-
             pathDefs.sort(
                 () =>
                     Math.random() -
@@ -1827,37 +2484,42 @@
 
 
                     const pos =
-                        gridPositions[index];
+                        gridPositions[
+                            index
+                        ];
 
 
                     containerGroup.position.set(
+
                         pos.x,
+
                         pos.y,
+
                         pos.z
+
                     );
 
 
                     /*
-                     * Initial random orientation.
+                     * Random initial orientation.
                      */
 
                     innerGroup.rotation.set(
 
                         Math.random() *
-                        Math.PI * 2,
+                            Math.PI *
+                            2,
 
                         Math.random() *
-                        Math.PI * 2,
+                            Math.PI *
+                            2,
 
                         Math.random() *
-                        Math.PI * 2
+                            Math.PI *
+                            2
 
                     );
 
-
-                    /*
-                     * Multi-axis rotation velocity.
-                     */
 
                     const speedScale =
                         settings.speedScale;
@@ -1909,7 +2571,8 @@
                         meshes:
                             innerGroup.children
                                 .filter(
-                                    c => c.isMesh
+                                    child =>
+                                        child.isMesh
                                 )
 
                     });
@@ -1923,36 +2586,147 @@
 
 
         // ============================================================
-        // USER INTERACTION / RAYCASTING
+        // SELECTION
         // ============================================================
 
         /*
-         * IMPORTANT:
+         * OrbitControls owns the actual drag gesture.
          *
-         * Previously selection happened immediately on pointerdown.
+         * We only select when the pointer goes down and up without
+         * meaningful movement.
          *
-         * That conflicts with OrbitControls because starting a drag
-         * would also immediately raycast/select a shape.
+         * This prevents:
          *
-         * The interaction below distinguishes:
+         *     drag -> accidental selection
          *
-         *   tap/click  -> selection
-         *   drag       -> OrbitControls interaction
+         * while preserving:
          *
-         * A small 6px movement tolerance is used for touchscreens.
+         *     tap -> selection
          */
 
-        let pointerDownPosition = null;
-
-        let pointerDownTime = 0;
-
-        let pointerDragged = false;
+        let pointerDownPosition =
+            null;
 
 
-        function updatePointerCoordinates(event) {
+        let pointerDragged =
+            false;
+
+
+        let pointerDownTime =
+            0;
+
+
+        function onPointerDown(
+            event
+        ) {
+
+            pointerDownPosition = {
+
+                x:
+                    event.clientX,
+
+                y:
+                    event.clientY
+
+            };
+
+
+            pointerDownTime =
+                performance.now();
+
+
+            pointerDragged =
+                false;
+        }
+
+
+        function onPointerMove(
+            event
+        ) {
+
+            if (
+                !pointerDownPosition
+            ) {
+
+                return;
+
+            }
+
+
+            const dx =
+                event.clientX -
+                pointerDownPosition.x;
+
+
+            const dy =
+                event.clientY -
+                pointerDownPosition.y;
+
+
+            if (
+                (
+                    dx * dx +
+                    dy * dy
+                ) > 36
+            ) {
+
+                pointerDragged =
+                    true;
+
+            }
+        }
+
+
+        function onPointerUp(
+            event
+        ) {
+
+            if (
+                !pointerDownPosition
+            ) {
+
+                return;
+
+            }
+
+
+            const elapsed =
+                performance.now() -
+                pointerDownTime;
+
+
+            const shouldSelect =
+                !pointerDragged &&
+                elapsed < 700;
+
+
+            pointerDownPosition =
+                null;
+
+
+            if (
+                shouldSelect
+            ) {
+
+                trySelectAtPointer(
+                    event
+                );
+
+            }
+
+
+            pointerDragged =
+                false;
+        }
+
+
+        function updatePointerCoordinates(
+            event
+        ) {
 
             const rect =
-                renderer.domElement
+                renderer
+                    .domElement
                     .getBoundingClientRect();
 
 
@@ -1963,7 +2737,9 @@
                         rect.left
                     ) /
                     rect.width
-                ) * 2 - 1;
+                ) *
+                    2 -
+                1;
 
 
             mouse.y =
@@ -1973,18 +2749,23 @@
                         rect.top
                     ) /
                     rect.height
-                ) * 2 + 1;
+                ) *
+                    2 +
+                1;
         }
 
 
-        function trySelectAtPointer(event) {
+        function trySelectAtPointer(
+            event
+        ) {
 
             if (
                 !sessionActive ||
-                selectedShapes.length >= 2 ||
-                pointerDragged
+                selectedShapes.length >= 2
             ) {
+
                 return;
+
             }
 
 
@@ -2003,10 +2784,10 @@
 
 
             shapesData.forEach(
-                s => {
+                shape => {
 
                     allMeshes.push(
-                        ...s.meshes
+                        ...shape.meshes
                     );
 
                 }
@@ -2020,8 +2801,12 @@
                 );
 
 
-            if (!intersects.length) {
+            if (
+                !intersects.length
+            ) {
+
                 return;
+
             }
 
 
@@ -2031,8 +2816,8 @@
 
             const targetShape =
                 shapesData.find(
-                    s =>
-                        s.meshes.includes(
+                    shape =>
+                        shape.meshes.includes(
                             hitMesh
                         )
                 );
@@ -2060,106 +2845,20 @@
 
 
                 if (
-                    selectedShapes.length === 2
+                    selectedShapes.length ===
+                    2
                 ) {
 
                     evaluateSelection();
+
                 }
             }
         }
 
 
-        function onPointerDown(event) {
-
-            pointerDownPosition = {
-
-                x: event.clientX,
-
-                y: event.clientY
-
-            };
-
-
-            pointerDownTime =
-                performance.now();
-
-
-            pointerDragged = false;
-        }
-
-
-        function onPointerMove(event) {
-
-            if (
-                !pointerDownPosition
-            ) {
-                return;
-            }
-
-
-            const dx =
-                event.clientX -
-                pointerDownPosition.x;
-
-
-            const dy =
-                event.clientY -
-                pointerDownPosition.y;
-
-
-            /*
-             * 6px squared movement threshold.
-             *
-             * This prevents tiny touchscreen movement from being
-             * interpreted as a pan instead of a tap.
-             */
-
-            if (
-                (
-                    dx * dx +
-                    dy * dy
-                ) > 36
-            ) {
-
-                pointerDragged = true;
-            }
-        }
-
-
-        function onPointerUp(event) {
-
-            if (
-                !pointerDownPosition
-            ) {
-                return;
-            }
-
-
-            const elapsed =
-                performance.now() -
-                pointerDownTime;
-
-
-            const wasClick =
-                !pointerDragged &&
-                elapsed < 700;
-
-
-            pointerDownPosition =
-                null;
-
-
-            if (wasClick) {
-
-                trySelectAtPointer(
-                    event
-                );
-            }
-
-
-            pointerDragged = false;
-        }
-
+        // ============================================================
+        // MATERIAL
+        // ============================================================
 
         function setShapeMaterial(
             shapeItem,
@@ -2178,7 +2877,7 @@
 
 
         // ============================================================
-        // SELECTION EVALUATION
+        // EVALUATE SELECTION
         // ============================================================
 
         function evaluateSelection() {
@@ -2186,7 +2885,9 @@
             if (
                 currentTrialResolved
             ) {
+
                 return;
+
             }
 
 
@@ -2210,28 +2911,31 @@
             const [
                 shape1,
                 shape2
-            ] = selectedShapes;
+            ] =
+                selectedShapes;
 
 
             const isMatch =
-                (
-                    shape1.matchId ===
-                    'TARGET_A'
-                ) &&
-                (
-                    shape2.matchId ===
-                    'TARGET_A'
-                );
+                shape1.matchId ===
+                    'TARGET_A' &&
+                shape2.matchId ===
+                    'TARGET_A';
 
 
             updateAdaptiveDifficulty(
+
                 isMatch,
+
                 responseMs,
+
                 false
+
             );
 
 
-            if (isMatch) {
+            if (
+                isMatch
+            ) {
 
                 AudioEngine.playSuccess();
 
@@ -2255,13 +2959,20 @@
 
 
                 roundTransitionTimeout =
-                    setTimeout(() => {
+                    setTimeout(
+                        () => {
 
-                        if (sessionActive) {
-                            advanceTrial();
-                        }
+                            if (
+                                sessionActive
+                            ) {
 
-                    }, 600);
+                                advanceTrial();
+
+                            }
+
+                        },
+                        600
+                    );
 
             } else {
 
@@ -2301,13 +3012,20 @@
 
 
                 roundTransitionTimeout =
-                    setTimeout(() => {
+                    setTimeout(
+                        () => {
 
-                        if (sessionActive) {
-                            advanceTrial();
-                        }
+                            if (
+                                sessionActive
+                            ) {
 
-                    }, 1000);
+                                advanceTrial();
+
+                            }
+
+                        },
+                        1000
+                    );
             }
         }
 
@@ -2328,12 +3046,15 @@
 
             const acc =
                 totalAttempts === 0
+
                     ? 100
+
                     : Math.round(
                         (
                             score /
                             totalAttempts
-                        ) * 100
+                        ) *
+                        100
                     );
 
 
@@ -2350,8 +3071,11 @@
                     trialTimeRemaining /
                     60
                 )
-                .toString()
-                .padStart(2, '0');
+                    .toString()
+                    .padStart(
+                        2,
+                        '0'
+                    );
 
 
             const trialSecs =
@@ -2359,8 +3083,11 @@
                     trialTimeRemaining %
                     60
                 )
-                .toString()
-                .padStart(2, '0');
+                    .toString()
+                    .padStart(
+                        2,
+                        '0'
+                    );
 
 
             document
@@ -2376,8 +3103,11 @@
                     sessionTimeRemaining /
                     60
                 )
-                .toString()
-                .padStart(2, '0');
+                    .toString()
+                    .padStart(
+                        2,
+                        '0'
+                    );
 
 
             const sessionSecs =
@@ -2385,8 +3115,11 @@
                     sessionTimeRemaining %
                     60
                 )
-                .toString()
-                .padStart(2, '0');
+                    .toString()
+                    .padStart(
+                        2,
+                        '0'
+                    );
 
 
             document
@@ -2397,6 +3130,10 @@
                 `#${trialNumber} • ${sessionMins}:${sessionSecs}`;
         }
 
+
+        // ============================================================
+        // ROTATION SPEED
+        // ============================================================
 
         function updateRotationSpeedLabel() {
 
@@ -2409,7 +3146,8 @@
             baseRotationMultiplier =
                 Number(
                     slider.value
-                ) / 100;
+                ) /
+                100;
 
 
             document
@@ -2422,26 +3160,43 @@
 
 
         // ============================================================
-        // START / STOP SESSION
+        // START SESSION
         // ============================================================
 
         function startSession() {
 
+            /*
+             * This must happen inside the user's button click
+             * for browsers that require a user gesture to resume
+             * Web Audio.
+             */
+
             AudioEngine.init();
 
 
-            sessionActive = true;
+            sessionActive =
+                true;
 
 
-            score = 0;
+            score =
+                0;
 
-            totalAttempts = 0;
 
-            trialNumber = 0;
+            totalAttempts =
+                0;
 
-            adaptiveLevel = 0;
 
-            adaptiveHistory = [];
+            trialNumber =
+                0;
+
+
+            adaptiveLevel =
+                0;
+
+
+            adaptiveHistory =
+                [];
+
 
             currentTrialResolved =
                 false;
@@ -2451,9 +3206,11 @@
                 trialTimer
             );
 
+
             clearInterval(
                 sessionTimer
             );
+
 
             clearTimeout(
                 roundTransitionTimeout
@@ -2473,9 +3230,13 @@
 
 
             if (
-                !Number.isFinite(minutes)
+                !Number.isFinite(
+                    minutes
+                )
             ) {
+
                 minutes = 2;
+
             }
 
 
@@ -2484,7 +3245,9 @@
                     1,
                     Math.min(
                         60,
-                        Math.round(minutes)
+                        Math.round(
+                            minutes
+                        )
                     )
                 );
 
@@ -2495,6 +3258,14 @@
 
             sessionTimeRemaining =
                 minutes * 60;
+
+
+            /*
+             * Make absolutely certain the layout is current before
+             * generating the first round.
+             */
+
+            updateResponsiveLayout();
 
 
             updateDashboard();
@@ -2526,32 +3297,49 @@
 
             startSessionTimer();
 
+
             advanceTrial();
         }
 
 
+        // ============================================================
+        // STOP SESSION
+        // ============================================================
+
         function stopSession() {
 
-            if (!sessionActive) {
+            if (
+                !sessionActive
+            ) {
+
                 return;
+
             }
+
 
             endSession();
         }
 
 
+        // ============================================================
+        // END SESSION
+        // ============================================================
+
         function endSession() {
 
-            sessionActive = false;
+            sessionActive =
+                false;
 
 
             clearInterval(
                 trialTimer
             );
 
+
             clearInterval(
                 sessionTimer
             );
+
 
             clearTimeout(
                 roundTransitionTimeout
@@ -2563,12 +3351,15 @@
 
             const acc =
                 totalAttempts === 0
+
                     ? 0
+
                     : Math.round(
                         (
                             score /
                             totalAttempts
-                        ) * 100
+                        ) *
+                        100
                     );
 
 
@@ -2591,7 +3382,8 @@
 
 
             const completedSeconds =
-                configuredMinutes * 60 -
+                configuredMinutes *
+                    60 -
                 sessionTimeRemaining;
 
 
@@ -2600,7 +3392,8 @@
                     Math.max(
                         0,
                         completedSeconds
-                    ) / 60
+                    ) /
+                    60
                 );
 
 
@@ -2609,10 +3402,14 @@
                     Math.max(
                         0,
                         completedSeconds
-                    ) % 60
+                    ) %
+                    60
                 )
-                .toString()
-                .padStart(2, '0');
+                    .toString()
+                    .padStart(
+                        2,
+                        '0'
+                    );
 
 
             document
@@ -2641,7 +3438,7 @@
 
 
         // ============================================================
-        // MAIN RENDER LOOP
+        // ROTATION
         // ============================================================
 
         const enableRotationChk =
@@ -2649,6 +3446,10 @@
                 'chk-speed'
             );
 
+
+        // ============================================================
+        // RENDER LOOP
+        // ============================================================
 
         function animate() {
 
@@ -2658,7 +3459,7 @@
 
 
             /*
-             * Continuous rotation engine.
+             * Continuous shape rotation.
              */
 
             if (
@@ -2667,26 +3468,32 @@
 
                 const currentSpeedMultiplier =
                     Number(
-                        document.getElementById(
-                            'rotation-speed'
-                        ).value
-                    ) / 100;
+                        document
+                            .getElementById(
+                                'rotation-speed'
+                            )
+                            .value
+                    ) /
+                    100;
 
 
                 shapesData.forEach(
                     item => {
 
-                        item.innerGroup.rotation.x +=
+                        item.innerGroup
+                            .rotation.x +=
                             item.rotVelocity.x *
                             currentSpeedMultiplier;
 
 
-                        item.innerGroup.rotation.y +=
+                        item.innerGroup
+                            .rotation.y +=
                             item.rotVelocity.y *
                             currentSpeedMultiplier;
 
 
-                        item.innerGroup.rotation.z +=
+                        item.innerGroup
+                            .rotation.z +=
                             item.rotVelocity.z *
                             currentSpeedMultiplier;
 
@@ -2696,7 +3503,7 @@
 
 
             /*
-             * Required by OrbitControls when damping is enabled.
+             * Required because damping is enabled.
              */
 
             controls.update();
@@ -2710,48 +3517,72 @@
 
 
         // ============================================================
-        // RESPONSIVE RESIZE
+        // RESIZE
         // ============================================================
 
-        window.addEventListener(
-            'resize',
-            () => {
+        function handleResize() {
 
-                updateResponsiveLayout();
+            updateResponsiveLayout();
 
 
-                /*
-                 * Reposition active shapes into the newly calculated
-                 * six grid slots.
-                 *
-                 * Their current rotations, generated geometries,
-                 * trial state, and selection state are preserved.
-                 */
+            /*
+             * Keep currently active shapes attached to their new
+             * responsive grid positions.
+             */
 
-                shapesData.forEach(
-                    (item, index) => {
+            shapesData.forEach(
+                (item, index) => {
 
-                        const pos =
-                            gridPositions[index];
+                    const pos =
+                        gridPositions[
+                            index
+                        ];
 
 
-                        if (pos) {
+                    if (
+                        pos
+                    ) {
 
-                            item.containerGroup.position.set(
+                        item
+                            .containerGroup
+                            .position.set(
 
                                 pos.x,
+
                                 pos.y,
+
                                 pos.z
 
                             );
 
-                        }
-
                     }
-                );
+                }
+            );
+        }
 
-            }
+
+        window.addEventListener(
+            'resize',
+            handleResize
         );
+
+
+        /*
+         * visualViewport catches mobile browser viewport changes,
+         * including some address-bar/orientation changes that do not
+         * behave exactly like a normal desktop resize.
+         */
+
+        if (
+            window.visualViewport
+        ) {
+
+            window.visualViewport.addEventListener(
+                'resize',
+                handleResize
+            );
+
+        }
 
 
         // ============================================================
@@ -2803,7 +3634,7 @@
 
 
         // ============================================================
-        // UI EVENT LISTENERS
+        // BUTTONS
         // ============================================================
 
         document
@@ -2834,15 +3665,25 @@
                 'click',
                 () => {
 
-                    if (sessionActive) {
+                    if (
+                        sessionActive
+                    ) {
+
                         stopSession();
+
                     } else {
+
                         startSession();
+
                     }
 
                 }
             );
 
+
+        // ============================================================
+        // SETTINGS
+        // ============================================================
 
         document
             .getElementById(
@@ -2869,9 +3710,13 @@
 
 
                     if (
-                        !Number.isFinite(value)
+                        !Number.isFinite(
+                            value
+                        )
                     ) {
+
                         value = 2;
+
                     }
 
 
@@ -2880,7 +3725,9 @@
                             1,
                             Math.min(
                                 60,
-                                Math.round(value)
+                                Math.round(
+                                    value
+                                )
                             )
                         );
 
@@ -2893,12 +3740,19 @@
 
 
         // ============================================================
-        // INITIALIZATION
+        // INITIAL STATE
         // ============================================================
 
         updateRotationSpeedLabel();
 
         updateDashboard();
+
+        updateResponsiveLayout();
+
+
+        // ============================================================
+        // START RENDERING
+        // ============================================================
 
         animate();
 
