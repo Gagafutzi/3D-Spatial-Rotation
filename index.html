@@ -180,6 +180,36 @@
             overflow: hidden;
         }
 
+        #timer-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 12px;
+            background: #1e293b;
+            z-index: 40;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #timer-bar-fill {
+            height: 100%;
+            width: 100%;
+            background: var(--correct);
+            transition: width 0.1s linear, background-color 0.3s ease;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .timer-warning {
+            background: #f59e0b !important;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.6) !important;
+        }
+
+        .timer-danger {
+            background: var(--wrong) !important;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.8) !important;
+        }
+
         #canvas-container {
             position: absolute;
 
@@ -230,7 +260,7 @@
 
             align-items: center;
 
-            z-index: 30;
+            z-index: 50;
 
             text-align: center;
 
@@ -310,7 +340,7 @@
         .instruction-bar {
             position: absolute;
 
-            top: 16px;
+            top: 24px;
 
             left: 50%;
 
@@ -505,7 +535,7 @@
             }
 
             .instruction-bar {
-                top: 10px;
+                top: 18px;
 
                 max-width:
                     calc(100% - 24px);
@@ -608,7 +638,7 @@
                 target="_blank"
                 rel="noopener noreferrer"
             >
-                Join MINDBUILDING Community
+                discord.gg/brain
             </a>
 
             <button
@@ -622,9 +652,24 @@
 
                 <div
                     class="stat-value"
+                    id="stat-diff"
+                >
+                    Lv. 0
+                </div>
+
+                <div class="stat-label">
+                    Difficulty
+                </div>
+
+            </div>
+
+            <div class="stat-box">
+
+                <div
+                    class="stat-value"
                     id="stat-timer"
                 >
-                    00:12
+                    00:15
                 </div>
 
                 <div class="stat-label">
@@ -688,6 +733,10 @@
          ============================================================ -->
 
     <main>
+        
+        <div id="timer-bar-container">
+            <div id="timer-bar-fill"></div>
+        </div>
 
         <div class="instruction-bar">
 
@@ -1052,7 +1101,7 @@
 
         let sessionTimer = null;
 
-        let trialTimeRemaining = 12;
+        let trialTimeRemaining = 15;
 
         let sessionTimeRemaining = 120;
 
@@ -1938,7 +1987,7 @@
                         0.008 *
                         manualSpeed,
 
-                    trialSeconds: 12
+                    trialSeconds: 15
 
                 };
 
@@ -1968,14 +2017,15 @@
                     ) *
                     manualSpeed,
 
+                // Expanded scalar to ensure lower difficulty grants even more time pressure relief
                 trialSeconds:
 
                     Math.max(
-                        5,
+                        4,
 
-                        12 -
+                        15 -
                             adaptiveLevel *
-                            0.7
+                            1.1
                     )
 
             };
@@ -3096,6 +3146,29 @@
                 .innerText =
                 `${trialMins}:${trialSecs}`;
 
+            document
+                .getElementById(
+                    'stat-diff'
+                )
+                .innerText =
+                `Lv. ${adaptiveLevel}`;
+
+            // Visual Timer Bar Update
+            const timerFill = document.getElementById('timer-bar-fill');
+            if (timerFill) {
+                const totalTrialTime = getDifficultySettings().trialSeconds;
+                const percentage = Math.max(0, (trialTimeRemaining / totalTrialTime) * 100);
+                timerFill.style.width = `${percentage}%`;
+
+                // Shift color states to add pressure
+                timerFill.classList.remove('timer-warning', 'timer-danger');
+                if (percentage <= 25) {
+                    timerFill.classList.add('timer-danger');
+                } else if (percentage <= 50) {
+                    timerFill.classList.add('timer-warning');
+                }
+            }
+
 
             const sessionMins =
                 Math.floor(
@@ -3760,4 +3833,3 @@
 </body>
 
 </html>
-
