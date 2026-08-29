@@ -1,431 +1,623 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Spatial Visualization Training</title>
+    <title>Advanced Dynamic Spatial Rotation Trainer</title>
     <style>
         :root {
-            --bg: #0f172a; --panel: #1e293b; --text: #f8fafc;
-            --text-dim: #94a3b8; --accent: #3b82f6; --success: #10b981; --danger: #ef4444;
+            --bg-color: #090d16;
+            --panel-bg: #131b2e;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --correct: #10b981;
+            --wrong: #ef4444;
+            --card-border: #1e293b;
         }
-        * { box-sizing: border-box; }
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg); color: var(--text);
-            display: flex; overflow: hidden; user-select: none;
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
         }
-        
-        #sidebar {
-            width: 320px; background: var(--panel); padding: 20px;
-            display: flex; flex-direction: column; gap: 15px;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5); z-index: 10;
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
-        #canvas-container { flex: 1; position: relative; }
-        
-        h2 { margin: 0 0 10px 0; font-size: 1.4rem; color: var(--accent); }
-        .stat-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;
+
+        /* --- Header & Dashboard --- */
+        header {
+            padding: 12px 24px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            height: 64px;
         }
-        .stat-box { display: flex; flex-direction: column; }
-        .stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; }
-        .stat-val { font-size: 1.25rem; font-weight: bold; }
-        
-        .control-group { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
-        select, input[type="checkbox"] {
-            padding: 8px; border-radius: 4px; background: var(--bg);
-            color: var(--text); border: 1px solid #334155;
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        
-        .btn-panel { display: flex; gap: 10px; margin-top: auto; }
-        button {
-            flex: 1; padding: 15px; font-size: 1.1rem; font-weight: bold;
-            border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.1s;
+
+        h1 span {
+            font-size: 11px;
+            background: var(--accent);
+            padding: 3px 8px;
+            border-radius: 12px;
+            color: white;
+            text-transform: uppercase;
         }
-        button:active { opacity: 0.8; }
-        #btn-same { background: var(--success); color: white; }
-        #btn-diff { background: var(--danger); color: white; }
-        
-        #timer-container {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px; background: #334155;
+
+        .dashboard {
+            display: flex;
+            gap: 24px;
+            align-items: center;
         }
-        #timer-bar { width: 100%; height: 100%; background: var(--success); transition: width 0.05s linear; }
-        #feedback-overlay {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 4rem; font-weight: bold; text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            opacity: 0; transition: opacity 0.2s; pointer-events: none;
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
         }
-        #crosshair {
-            position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
-            background: rgba(255,255,255,0.1); pointer-events: none;
+
+        .stat-value {
+            color: var(--accent);
+            font-size: 20px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- Workspace Layout --- */
+        main {
+            position: relative;
+            flex: 1;
+            width: 100%;
+            height: calc(100vh - 64px);
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        /* --- Overlay Panels --- */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(9, 13, 22, 0.88);
+            backdrop-filter: blur(8px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .modal {
+            background: var(--panel-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        /* --- Instruction Tooltip & Controls --- */
+        .instruction-bar {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(19, 27, 46, 0.9);
+            border: 1px solid var(--card-border);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .instruction-bar strong {
+            color: var(--text-color);
+        }
+
+        .settings-panel {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(19, 27, 46, 0.9);
+            border: 1px solid var(--card-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            gap: 16px;
+            z-index: 5;
+            font-size: 12px;
+            align-items: center;
+        }
+
+        .settings-panel label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .settings-panel input[type="checkbox"] {
+            accent-color: var(--accent);
         }
     </style>
-    
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+
 <body>
 
-    <div id="sidebar">
-        <h2>Spatial Trainer</h2>
-        
-        <div class="control-group" style="margin-bottom: 10px;">
-            <label class="stat-label" style="color: var(--accent);">Game Mode</label>
-            <select id="sel-game-mode">
-                <option value="classic">Classic (6-Block Standard)</option>
-                <option value="hardcore">Mindbuilding (Adaptive & Multi-Axis)</option>
-            </select>
-        </div>
-
-        <div class="stat-grid">
+    <header>
+        <h1>Spatial Rotation <span>PRO</span></h1>
+        <div class="dashboard">
             <div class="stat-box">
-                <span class="stat-label">d' (Sensitivity)</span>
-                <span class="stat-val" id="val-dprime">0.00</span>
+                <div class="stat-value" id="stat-timer">02:00</div>
+                <div class="stat-label">Time Remaining</div>
             </div>
             <div class="stat-box">
-                <span class="stat-label">Blocks</span>
-                <span class="stat-val" id="val-complexity">6</span>
+                <div class="stat-value" id="stat-score">0</div>
+                <div class="stat-label">Matches</div>
             </div>
             <div class="stat-box">
-                <span class="stat-label">Hits (SAME)</span>
-                <span class="stat-val" id="val-hits">0</span>
-            </div>
-            <div class="stat-box">
-                <span class="stat-label">False Alarms</span>
-                <span class="stat-val" id="val-fa">0</span>
+                <div class="stat-value" id="stat-acc">100%</div>
+                <div class="stat-label">Accuracy</div>
             </div>
         </div>
+    </header>
 
-        <div class="control-group">
-            <label class="stat-label">Visual Style</label>
-            <select id="sel-mode">
-                <option value="normal">Normal (Colored)</option>
-                <option value="featureless">Featureless (Anti-Labeling)</option>
-                <option value="wireframe">Wireframe</option>
-            </select>
+    <main>
+        <div class="instruction-bar">
+            <strong>Task:</strong> Select the 2 shapes that are <em>identical under rotation</em>. Watch out for mirrors!
         </div>
 
-        <div class="control-group">
-            <label style="display: flex; align-items: center; gap: 8px;">
-                <input type="checkbox" id="toggle-anaglyph"> Red-Cyan 3D (Stereoscopic)
+        <div id="canvas-container"></div>
+
+        <div class="settings-panel">
+            <label>
+                <input type="checkbox" id="chk-sound" checked> Sound Effects
+            </label>
+            <label>
+                <input type="checkbox" id="chk-speed" checked> Continuous Rotation
             </label>
         </div>
-        
-        <div class="stat-box" style="margin-top: 10px;">
-            <span class="stat-label">Rotation Speed</span>
-            <span class="stat-val" id="val-speed">0.005</span>
+
+        <!-- Start Overlay -->
+        <div class="overlay" id="start-overlay">
+            <div class="modal">
+                <h2>Dynamic Pair Matching</h2>
+                <p>
+                    6 3D shapes will float and continuously spin in real-time. 
+                    Identify the two objects that have identical 3D geometries (ignoring rotation). 
+                    Distractors include mirror reflections and distinct block paths.
+                </p>
+                <button class="btn" id="btn-start">Start Session</button>
+            </div>
         </div>
 
-        <div class="btn-panel">
-            <button id="btn-same">SAME (A)</button>
-            <button id="btn-diff">DIFF (D)</button>
+        <!-- Game Over Overlay -->
+        <div class="overlay" id="end-overlay" style="display: none;">
+            <div class="modal">
+                <h2>Session Complete</h2>
+                <p id="end-summary">Score: 0 | Accuracy: 0%</p>
+                <button class="btn" id="btn-restart">Play Again</button>
+            </div>
         </div>
-    </div>
+    </main>
 
-    <div id="canvas-container">
-        <div id="crosshair"></div>
-        <div id="feedback-overlay"></div>
-        <div id="timer-container"><div id="timer-bar"></div></div>
-    </div>
+    <script>
+        // --- Audio Synthesizer (Web Audio API) ---
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            },
+            playTone(freq, duration, type = 'sine') {
+                if (!document.getElementById('chk-sound').checked || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playSuccess() {
+                this.init();
+                this.playTone(523.25, 0.15); // C5
+                setTimeout(() => this.playTone(659.25, 0.25), 100); // E5
+            },
+            playError() {
+                this.init();
+                this.playTone(180, 0.3, 'sawtooth');
+            },
+            playSelect() {
+                this.init();
+                this.playTone(440, 0.08);
+            }
+        };
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js';
+        // --- Session State ---
+        let sessionActive = false;
+        let sessionTimer = null;
+        let timeRemaining = 120; // 2 Minutes
+        let score = 0;
+        let totalAttempts = 0;
+        let selectedShapes = [];
+        let shapesData = []; // Metadata for the 6 active shapes
 
-        let scene, camera, renderer, effect;
-        let leftPivot, rightPivot;
+        // --- Three.js Setup ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#090d16');
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 0, 22);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Lighting Setup
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+        dirLight.position.set(20, 30, 20);
+        scene.add(dirLight);
+        const fillLight = new THREE.DirectionalLight(0x90b0d0, 0.4);
+        fillLight.position.set(-20, -10, -20);
+        scene.add(fillLight);
+
+        // Shared Geometry & Materials
+        const cubeGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+        const edgesGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1));
         
-        let isMatch = true;
-        let currentPositions = [];
-        let timerId = null;
-        
-        // Progression State
-        let hits = 0, falseAlarms = 0, totalTargets = 0, totalDistractors = 0;
-        let baseSpeed = 0.005;
-        let complexity = 6; // Defaults to 6 for classic
-        let timeLimitMs = 15000;
-        let timeLeft = 0;
+        const matDefault = new THREE.MeshLambertMaterial({ color: 0xe2e8f0 });
+        const matSelected = new THREE.MeshLambertMaterial({ color: 0xf59e0b }); // Yellow highlight
+        const matCorrect = new THREE.MeshLambertMaterial({ color: 0x10b981 });  // Green
+        const matWrong = new THREE.MeshLambertMaterial({ color: 0xef4444 });    // Red
+        const edgeMat = new THREE.LineBasicMaterial({ color: 0x090d16, transparent: true, opacity: 0.6 });
 
-        // Settings
-        let gameMode = 'classic';
-        let visualStyle = 'normal';
-        let anaglyphEnabled = false;
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
 
-        const colors = [0xef4444, 0x3b82f6, 0x10b981, 0xf59e0b, 0x8b5cf6, 0x06b6d4];
+        // 3x2 Grid Offsets in Viewport Space
+        const gridPositions = [
+            { x: -7.5, y: 3.8, z: 0 },
+            { x: 0,    y: 3.8, z: 0 },
+            { x: 7.5,  y: 3.8, z: 0 },
+            { x: -7.5, y: -3.8, z: 0 },
+            { x: 0,    y: -3.8, z: 0 },
+            { x: 7.5,  y: -3.8, z: 0 }
+        ];
 
-        function init() {
-            const container = document.getElementById('canvas-container');
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x0f172a);
-            
-            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
-            camera.position.z = 20;
+        // --- Algorithmic Path Generation ---
+        function generateComplexPath(numBlocks) {
+            const positions = [[0, 0, 0]];
+            let currentPos = [0, 0, 0];
+            const axes = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
+            let currentDir = axes[Math.floor(Math.random() * axes.length)];
 
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            container.appendChild(renderer.domElement);
-
-            effect = new AnaglyphEffect(renderer);
-            effect.setSize(container.clientWidth, container.clientHeight);
-
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(10, 20, 10);
-            scene.add(dirLight);
-
-            leftPivot = new THREE.Group();
-            rightPivot = new THREE.Group();
-            leftPivot.position.set(-4.5, 0, 0);
-            rightPivot.position.set(4.5, 0, 0);
-            scene.add(leftPivot, rightPivot);
-
-            window.addEventListener('resize', onWindowResize);
-            setupUI();
-            
-            startTrial();
-            animate();
-        }
-
-        function generateShapePositions(count) {
-            const positions = [[0,0,0]];
-            const filled = new Set(["0,0,0"]);
-            
-            for(let i=1; i<count; i++) {
-                let attached = false;
-                while(!attached) {
-                    const base = positions[Math.floor(Math.random() * positions.length)];
-                    const dir = [[1,0,0], [-1,0,0], [0,1,0], [0,-1,0], [0,0,1], [0,0,-1]][Math.floor(Math.random() * 6)];
-                    const nx = base[0] + dir[0], ny = base[1] + dir[1], nz = base[2] + dir[2];
-                    const key = `${nx},${ny},${nz}`;
-                    
-                    if(!filled.has(key)) {
-                        positions.push([nx,ny,nz]);
-                        filled.add(key);
-                        attached = true;
+            while (positions.length < numBlocks) {
+                let segLength = Math.floor(Math.random() * 3) + 2;
+                for (let i = 0; i < segLength && positions.length < numBlocks; i++) {
+                    currentPos = [
+                        currentPos[0] + currentDir[0],
+                        currentPos[1] + currentDir[1],
+                        currentPos[2] + currentDir[2]
+                    ];
+                    if (!positions.some(p => p[0] === currentPos[0] && p[1] === currentPos[1] && p[2] === currentPos[2])) {
+                        positions.push([...currentPos]);
                     }
                 }
+                const orthos = axes.filter(a => (a[0] * currentDir[0] + a[1] * currentDir[1] + a[2] * currentDir[2]) === 0);
+                currentDir = orthos[Math.floor(Math.random() * orthos.length)];
             }
             return positions;
         }
 
-        function buildMesh(positions, isMirror, style) {
+        function createShapeGroup(positions, material) {
             const group = new THREE.Group();
-            const geom = new THREE.BoxGeometry(1, 1, 1);
-            
-            let wireMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, wireframe: true });
-            let featMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa, flatShading: true });
-
-            positions.forEach((p, index) => {
-                let mat = style === 'wireframe' ? wireMat : 
-                          style === 'featureless' ? featMat : 
-                          new THREE.MeshLambertMaterial({ color: colors[index % colors.length] });
-                
-                const mesh = new THREE.Mesh(geom, mat);
-                mesh.position.set(isMirror ? -p[0] : p[0], p[1], p[2]);
-                
-                if(style !== 'wireframe') {
-                    const edges = new THREE.EdgesGeometry(geom);
-                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
-                    mesh.add(line);
-                }
+            positions.forEach(pos => {
+                const mesh = new THREE.Mesh(cubeGeo, material);
+                mesh.position.set(...pos);
                 group.add(mesh);
+
+                const edges = new THREE.LineSegments(edgesGeo, edgeMat);
+                edges.position.set(...pos);
+                group.add(edges);
             });
-            
+
+            // Center geometry inside group
             const box = new THREE.Box3().setFromObject(group);
             const center = box.getCenter(new THREE.Vector3());
             group.children.forEach(c => c.position.sub(center));
-            
             return group;
         }
 
-        function applyOffset(group) {
-            if (gameMode === 'classic') {
-                // Classic mode: Simple distinct Y-axis rotations (0, 90, 180, 270)
-                const steps = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
-                const yaw = steps[Math.floor(Math.random() * steps.length)];
-                group.quaternion.setFromEuler(new THREE.Euler(0, yaw, 0, 'XYZ'));
-            } else {
-                // Hardcore mode: Multi-axis combinations
-                const steps = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
-                const yaw = steps[Math.floor(Math.random() * steps.length)];
-                const pitch = steps[Math.floor(Math.random() * steps.length)];
-                const roll = steps[Math.floor(Math.random() * steps.length)];
-                group.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, roll, 'XYZ'));
-            }
+        // --- Round Construction Engine ---
+        function clearShapes() {
+            shapesData.forEach(item => scene.remove(item.containerGroup));
+            shapesData = [];
+            selectedShapes = [];
         }
 
-        function startTrial() {
-            isMatch = Math.random() > 0.5;
-            
-            // Enforce classic rules
-            if (gameMode === 'classic') {
-                complexity = 6;
-                baseSpeed = 0.005;
-                timeLimitMs = 15000;
-            }
+        function spawnRound() {
+            clearShapes();
 
-            currentPositions = generateShapePositions(Math.floor(complexity));
-            rebuildShapes();
-            
-            leftPivot.rotation.set(0,0,0);
-            rightPivot.rotation.set(0,0,0);
-            
-            startTimer();
-            updateHUD();
-        }
+            // Scale complexity with score (Starts at 10 cubes, scales up to 18)
+            const numCubes = Math.min(10 + Math.floor(score / 2), 18);
 
-        function rebuildShapes() {
-            leftPivot.clear(); rightPivot.clear();
-            const leftMesh = buildMesh(currentPositions, false, visualStyle);
-            const rightMesh = buildMesh(currentPositions, !isMatch, visualStyle); 
-            
-            applyOffset(rightMesh);
-            
-            leftPivot.add(leftMesh);
-            rightPivot.add(rightMesh);
-        }
+            // Generate geometries
+            const pathA = generateComplexPath(numCubes);
+            const pathAMirror = pathA.map(p => [-p[0], p[1], p[2]]); // Chiral mirror distractor
+            const pathB = generateComplexPath(numCubes);
+            const pathBMirror = pathB.map(p => [-p[0], p[1], p[2]]);
+            const pathC = generateComplexPath(numCubes);
 
-        function normSInv(p) {
-            p = Math.max(0.0001, Math.min(0.9999, p));
-            const a = 0.147, logTerm = Math.log(4 * p * (1 - p));
-            const term = 2 / (Math.PI * a) + logTerm / 2;
-            const inner = Math.sqrt(term * term - logTerm / a);
-            return (p < 0.5 ? -1 : 1) * Math.sqrt(inner - term);
-        }
+            const pathDefs = [
+                { path: pathA, matchId: 'TARGET_A' },
+                { path: pathA, matchId: 'TARGET_A' }, // Exact pair match
+                { path: pathAMirror, matchId: 'MIRROR_A' },
+                { path: pathB, matchId: 'DISTRACTOR_B' },
+                { path: pathBMirror, matchId: 'MIRROR_B' },
+                { path: pathC, matchId: 'DISTRACTOR_C' }
+            ];
 
-        function calculateDPrime() {
-            const adjH = (hits + 0.5) / (totalTargets + 1);
-            const adjFA = (falseAlarms + 0.5) / (totalDistractors + 1);
-            return (normSInv(adjH) - normSInv(adjFA)).toFixed(2);
-        }
+            // Shuffle grid slots
+            pathDefs.sort(() => Math.random() - 0.5);
 
-        function handleAnswer(userSaysSame) {
-            clearInterval(timerId);
-            let isCorrect = false;
+            pathDefs.forEach((def, index) => {
+                const innerGroup = createShapeGroup(def.path, matDefault);
+                const containerGroup = new THREE.Group();
+                containerGroup.add(innerGroup);
 
-            if(userSaysSame === null) {
-                showFeedback("TIME OUT", "var(--danger)");
-                if(isMatch) totalTargets++; else totalDistractors++;
-            } else {
-                if (isMatch) {
-                    totalTargets++;
-                    if(userSaysSame) { hits++; isCorrect = true; }
-                } else {
-                    totalDistractors++;
-                    if(userSaysSame) { falseAlarms++; } else { isCorrect = true; }
-                }
-                showFeedback(isCorrect ? "CORRECT" : "INCORRECT", isCorrect ? "var(--success)" : "var(--danger)");
-            }
+                // Position in grid
+                const pos = gridPositions[index];
+                containerGroup.position.set(pos.x, pos.y, pos.z);
 
-            // Only apply autoprogression if in Hardcore mode
-            if(gameMode === 'hardcore') {
-                const dp = parseFloat(calculateDPrime());
-                if (dp > 1.6) {
-                    baseSpeed = Math.min(0.03, baseSpeed + 0.002);
-                    timeLimitMs = Math.max(4000, timeLimitMs - 500);
-                    complexity = Math.min(15, complexity + 0.5);
-                } else if (dp < 1.0 && (totalTargets + totalDistractors) > 5) {
-                    baseSpeed = Math.max(0.002, baseSpeed - 0.001);
-                    timeLimitMs = Math.min(20000, timeLimitMs + 1000);
-                    complexity = Math.max(4, complexity - 0.5);
-                }
-            }
+                // Initial random orientation
+                innerGroup.rotation.set(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                );
 
-            updateHUD();
-            setTimeout(startTrial, 600);
-        }
+                // Multi-axis rotation velocity (Speed scales slightly with score)
+                const speedScale = 0.008 + Math.min(score * 0.001, 0.012);
+                const rotVelocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale,
+                    (Math.random() - 0.5) * speedScale
+                );
 
-        function startTimer() {
-            timeLeft = timeLimitMs;
-            const rate = 50;
-            clearInterval(timerId);
-            timerId = setInterval(() => {
-                timeLeft -= rate;
-                const pct = (timeLeft / timeLimitMs) * 100;
-                const bar = document.getElementById('timer-bar');
-                bar.style.width = pct + '%';
-                bar.style.background = pct < 25 ? 'var(--danger)' : 'var(--success)';
-                
-                if(timeLeft <= 0) handleAnswer(null);
-            }, rate);
-        }
+                scene.add(containerGroup);
 
-        function showFeedback(text, color) {
-            const fb = document.getElementById('feedback-overlay');
-            fb.innerText = text; fb.style.color = color;
-            fb.style.opacity = '1';
-            setTimeout(() => { fb.style.opacity = '0'; }, 500);
-        }
-
-        function updateHUD() {
-            document.getElementById('val-dprime').innerText = calculateDPrime();
-            document.getElementById('val-hits').innerText = hits;
-            document.getElementById('val-fa').innerText = falseAlarms;
-            document.getElementById('val-complexity').innerText = Math.floor(complexity);
-            document.getElementById('val-speed').innerText = baseSpeed.toFixed(3);
-        }
-
-        function setupUI() {
-            document.getElementById('btn-same').onclick = () => handleAnswer(true);
-            document.getElementById('btn-diff').onclick = () => handleAnswer(false);
-            
-            document.getElementById('sel-game-mode').onchange = (e) => {
-                gameMode = e.target.value;
-                startTrial(); // Instantly apply ruleset
-            };
-            
-            document.getElementById('sel-mode').onchange = (e) => {
-                visualStyle = e.target.value;
-                rebuildShapes();
-            };
-
-            document.getElementById('toggle-anaglyph').onchange = (e) => anaglyphEnabled = e.target.checked;
-
-            window.addEventListener('keydown', (e) => {
-                if(e.key.toLowerCase() === 'a') document.getElementById('btn-same').click();
-                if(e.key.toLowerCase() === 'd') document.getElementById('btn-diff').click();
+                shapesData.push({
+                    id: index,
+                    matchId: def.matchId,
+                    containerGroup,
+                    innerGroup,
+                    rotVelocity,
+                    meshes: innerGroup.children.filter(c => c.isMesh)
+                });
             });
         }
 
-        function onWindowResize() {
-            const container = document.getElementById('canvas-container');
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            if(effect) effect.setSize(container.clientWidth, container.clientHeight);
+        // --- User Interaction & Selection Logic ---
+        function onPointerDown(event) {
+            if (!sessionActive || selectedShapes.length >= 2) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+
+            // Collect all meshes for raycasting
+            let allMeshes = [];
+            shapesData.forEach(s => allMeshes.push(...s.meshes));
+
+            const intersects = raycaster.intersectObjects(allMeshes);
+
+            if (intersects.length > 0) {
+                const hitMesh = intersects[0].object;
+                // Find parent shape container
+                const targetShape = shapesData.find(s => s.innerGroup.children.includes(hitMesh));
+
+                if (targetShape && !selectedShapes.includes(targetShape)) {
+                    AudioEngine.playSelect();
+                    setShapeMaterial(targetShape, matSelected);
+                    selectedShapes.push(targetShape);
+
+                    if (selectedShapes.length === 2) {
+                        evaluateSelection();
+                    }
+                }
+            }
         }
+
+        function setShapeMaterial(shapeItem, material) {
+            shapeItem.meshes.forEach(m => m.material = material);
+        }
+
+        function evaluateSelection() {
+            totalAttempts++;
+            const [shape1, shape2] = selectedShapes;
+
+            const isMatch = (shape1.matchId === 'TARGET_A' && shape2.matchId === 'TARGET_A');
+
+            if (isMatch) {
+                AudioEngine.playSuccess();
+                setShapeMaterial(shape1, matCorrect);
+                setShapeMaterial(shape2, matCorrect);
+                score++;
+                updateDashboard();
+
+                setTimeout(() => {
+                    if (sessionActive) spawnRound();
+                }, 600);
+            } else {
+                AudioEngine.playError();
+                setShapeMaterial(shape1, matWrong);
+                setShapeMaterial(shape2, matWrong);
+                updateDashboard();
+
+                // Highlight correct pair as feedback
+                const correctPair = shapesData.filter(s => s.matchId === 'TARGET_A');
+                correctPair.forEach(s => setShapeMaterial(s, matCorrect));
+
+                setTimeout(() => {
+                    if (sessionActive) spawnRound();
+                }, 1600);
+            }
+        }
+
+        // --- Dashboard & Timer ---
+        function updateDashboard() {
+            document.getElementById('stat-score').innerText = score;
+            const acc = totalAttempts === 0 ? 100 : Math.round((score / totalAttempts) * 100);
+            document.getElementById('stat-acc').innerText = `${acc}%`;
+
+            const mins = Math.floor(timeRemaining / 60).toString().padStart(2, '0');
+            const secs = (timeRemaining % 60).toString().padStart(2, '0');
+            document.getElementById('stat-timer').innerText = `${mins}:${secs}`;
+        }
+
+        function startSession() {
+            sessionActive = true;
+            score = 0;
+            totalAttempts = 0;
+            timeRemaining = 120;
+            updateDashboard();
+
+            document.getElementById('start-overlay').style.display = 'none';
+            document.getElementById('end-overlay').style.display = 'none';
+
+            spawnRound();
+
+            clearInterval(sessionTimer);
+            sessionTimer = setInterval(() => {
+                timeRemaining--;
+                updateDashboard();
+                if (timeRemaining <= 0) {
+                    endSession();
+                }
+            }, 1000);
+        }
+
+        function endSession() {
+            sessionActive = false;
+            clearInterval(sessionTimer);
+            clearShapes();
+
+            const acc = totalAttempts === 0 ? 0 : Math.round((score / totalAttempts) * 100);
+            document.getElementById('end-summary').innerText = `Total Solved: ${score} | Accuracy: ${acc}%`;
+            document.getElementById('end-overlay').style.display = 'flex';
+        }
+
+        // --- Main Render Loop ---
+        const enableRotationChk = document.getElementById('chk-speed');
 
         function animate() {
             requestAnimationFrame(animate);
-            
-            if (gameMode === 'classic') {
-                // Classic: Single axis spin
-                leftPivot.rotation.y += baseSpeed;
-                rightPivot.rotation.y += baseSpeed;
-            } else {
-                // Hardcore: Wobbly multi-axis spin
-                leftPivot.rotation.y += baseSpeed;
-                leftPivot.rotation.x += (baseSpeed * 0.4);
-                rightPivot.rotation.y += baseSpeed;
-                rightPivot.rotation.x += (baseSpeed * 0.4);
+
+            // Continuous Rotation Engine
+            if (enableRotationChk.checked) {
+                shapesData.forEach(item => {
+                    item.innerGroup.rotation.x += item.rotVelocity.x;
+                    item.innerGroup.rotation.y += item.rotVelocity.y;
+                    item.innerGroup.rotation.z += item.rotVelocity.z;
+                });
             }
 
-            if (anaglyphEnabled && effect) {
-                effect.render(scene, camera);
-            } else {
-                renderer.render(scene, camera);
-            }
+            renderer.render(scene, camera);
         }
 
-        init();
+        // --- Event Listeners & Responsiveness ---
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        document.getElementById('btn-start').addEventListener('click', startSession);
+        document.getElementById('btn-restart').addEventListener('click', startSession);
+
+        // Init frame
+        animate();
     </script>
 </body>
+
 </html>
