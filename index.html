@@ -2627,6 +2627,125 @@
 
         let shapesData = [];
 
+        /* ============================================================
+           PROGRESSION AND SESSION RECORD
+           ============================================================
+
+           Two things were missing and they are the same thing.
+
+           The adaptive level already searches for the right difficulty inside a
+           session, but startSession reset it to 0, so every session re-climbed
+           from the bottom and nothing you established survived closing the tab.
+           And nothing was written down at all: score, accuracy and time were
+           computed for the end screen and then discarded, so there was no record
+           to look back at or to feed the archive.
+
+           A session now starts one level BELOW what has been established rather
+           than at that level. The top of your range is the part you hold least
+           reliably, so it is re-earned each time instead of assumed; starting at
+           the established level would credit a good day forever.
+
+           The stored level moves by at most one per session in either direction.
+           A single lucky run should not promote you two levels, and one bad
+           session should not undo a week.
+
+           A session that barely ran moves nothing. Both eWMT and Precision N-back
+           record an abandoned session as a real result — one as 0%, the other as
+           100% — and the archive had to defend against both. This refuses to
+           create that problem in the first place. */
+
+        const PROGRESS_KEY = 'spatial-rotation.progress.v1';
+
+        const PROGRESS_MODES = ['blocks', 'molecules', 'rs'];
+
+        /* Below this the session says nothing about difficulty either way. */
+        const MIN_SCORING_ATTEMPTS = 10;
+
+        /* Kept so the file cannot grow without bound. The archive is where the
+           long record lives; this is the tail that feeds it. */
+        const MAX_STORED_SESSIONS = 300;
+
+        function blankProgressEntry() {
+            return { level: 0, best: 0, sessions: 0, seconds: 0 };
+        }
+
+        function loadProgress() {
+            let data = null;
+            try {
+                data = JSON.parse(localStorage.getItem(PROGRESS_KEY));
+            } catch (e) { /* unreadable or storage off */ }
+            if (!data || typeof data !== 'object') data = {};
+            if (!data.modes || typeof data.modes !== 'object') data.modes = {};
+            PROGRESS_MODES.forEach(m => {
+                if (!data.modes[m] || typeof data.modes[m] !== 'object') {
+                    data.modes[m] = blankProgressEntry();
+                }
+            });
+            if (!Array.isArray(data.history)) data.history = [];
+            return data;
+        }
+
+        let progress = loadProgress();
+
+        function saveProgress() {
+            try {
+                localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
+            } catch (e) { /* quota or storage off; the session still plays */ }
+        }
+
+        /* One below what has been established, floored at zero. */
+        function startingLevel(mode) {
+            const entry = progress.modes[mode] || blankProgressEntry();
+            return Math.max(0, entry.level - 1);
+        }
+
+        /* Returns -1, 0 or +1: which way the established level moved, for the
+           end screen to report. */
+        function recordSession(mode, fields) {
+            const entry =
+                progress.modes[mode] ||
+                (progress.modes[mode] = blankProgressEntry());
+
+            entry.sessions += 1;
+            entry.seconds += fields.seconds;
+            if (fields.peakLevel > entry.best) entry.best = fields.peakLevel;
+
+            let moved = 0;
+            if (fields.attempts >= MIN_SCORING_ATTEMPTS) {
+                if (fields.endLevel > entry.level) {
+                    entry.level += 1;
+                    moved = 1;
+                } else if (fields.endLevel < entry.level - 1) {
+                    entry.level = Math.max(0, entry.level - 1);
+                    moved = -1;
+                }
+            }
+
+            progress.history.push({
+                ts: Date.now(),
+                mode: mode,
+                seconds: fields.seconds,
+                score: fields.score,
+                attempts: fields.attempts,
+                accuracy: fields.attempts > 0 ? fields.score / fields.attempts : null,
+                peakLevel: fields.peakLevel,
+                endLevel: fields.endLevel,
+                level: entry.level
+            });
+
+            if (progress.history.length > MAX_STORED_SESSIONS) {
+                progress.history =
+                    progress.history.slice(-MAX_STORED_SESSIONS);
+            }
+
+            saveProgress();
+            return moved;
+        }
+
+        /* The highest level actually reached this session, which is what the
+           record should carry — the ending level can be a dip. */
+        let sessionPeakLevel = 0;
+
         let adaptiveLevel = 0;
 
         let adaptiveHistory = [];
@@ -4315,6 +4434,11 @@
                         adaptiveLevel + 1,
                         10
                     );
+
+
+                if (adaptiveLevel > sessionPeakLevel) {
+                    sessionPeakLevel = adaptiveLevel;
+                }
 
 
                 adaptiveHistory = [];
@@ -6187,8 +6311,13 @@
                 0;
 
 
+            /* One below what has been established for THIS mode, not zero:
+               the three modes are different tasks and each keeps its own. */
             adaptiveLevel =
-                0;
+                startingLevel(currentMode);
+
+            sessionPeakLevel =
+                adaptiveLevel;
 
             consecutiveWins = 0;
             
@@ -6415,12 +6544,50 @@
                     );
 
 
+            /* Written down before the overlay goes up, so a session survives the
+               tab closing — which until now none of them did. */
+            const moved =
+                recordSession(
+                    currentMode,
+                    {
+                        seconds: Math.max(0, Math.round(completedSeconds)),
+                        score: score,
+                        attempts: totalAttempts,
+                        peakLevel: sessionPeakLevel,
+                        endLevel: adaptiveLevel
+                    }
+                );
+
+
+            const entry =
+                progress.modes[currentMode] ||
+                blankProgressEntry();
+
+
+            const ladder =
+                totalAttempts < MIN_SCORING_ATTEMPTS
+
+                    ? ` | Level ${entry.level} (too short to count)`
+
+                    : moved > 0
+
+                        ? ` | Level ${entry.level} \u2191`
+
+                        : moved < 0
+
+                            ? ` | Level ${entry.level} \u2193`
+
+                            : ` | Level ${entry.level} (held)`;
+
+
             document
                 .getElementById(
                     'end-summary'
                 )
                 .innerText =
-                `Total Solved: ${score} | Accuracy: ${acc}% | Trials: ${totalAttempts} | Time: ${completedMins}:${completedSecs}`;
+                `Total Solved: ${score} | Accuracy: ${acc}% | Trials: ${totalAttempts} | Time: ${completedMins}:${completedSecs}` +
+                ladder +
+                ` | Best ${entry.best}`;
 
 
             document
