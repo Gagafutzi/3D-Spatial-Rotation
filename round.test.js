@@ -116,5 +116,74 @@ console.log('\nrender spec');
     check('every bond has endpoints', rs.bonds.every(b => b.from && b.to));
 }
 
+/* ----------------------------------------------------------------
+ * Custom group pools (the settings panel's group picker)
+ * ---------------------------------------------------------------- */
+
+console.log('\ncustom group pools');
+{
+    // A pool the user might pick: oxygen/nitrogen only, no halogens.
+    const pool = { caps: ['COOH', 'CHO', 'CH2OH'], subs: ['OH', 'NH2'] };
+
+    let bad = 0, nulls = 0, offPool = 0, total = 0;
+
+    for (let level = 0; level <= 10; level++) {
+        for (let i = 0; i < 150; i++) {
+            const r = C.generateMoleculeRound(level, Math.random, pool);
+            if (!r) { nulls++; continue; }
+            if (r.entries.filter(e => C.canonicalKey(e.spec) === r.targetKey).length !== 2) bad++;
+            r.entries.forEach(e => {
+                total++;
+                const inPool =
+                    pool.caps.includes(e.spec.caps[0]) && pool.caps.includes(e.spec.caps[1]) &&
+                    pool.subs.includes(e.spec.subs[0]) && pool.subs.includes(e.spec.subs[1]);
+                if (!inPool) offPool++;
+            });
+        }
+    }
+
+    check('pooled rounds are all well formed', bad === 0 && nulls === 0, `${bad} bad, ${nulls} null`);
+    check(`every molecule uses only pooled groups (${total} checked)`, offPool === 0, `${offPool} off-pool`);
+}
+
+{
+    // A pool too small to build an asymmetric constitution from must
+    // degrade to the tier's own set rather than failing to generate.
+    const tiny = { caps: ['COOH'], subs: ['OH'] };
+
+    let nulls = 0;
+    for (let level = 0; level <= 10; level++) {
+        for (let i = 0; i < 100; i++) {
+            if (!C.generateMoleculeRound(level, Math.random, tiny)) nulls++;
+        }
+    }
+    check('an unusably small pool still generates rounds', nulls === 0, `${nulls} null`);
+
+    const resolved = C.resolvePool('distinct', false, tiny);
+    check('under-sized pool falls back per dimension',
+        resolved.caps.length >= 2 && resolved.subs.length >= 2,
+        JSON.stringify(resolved));
+
+    const symResolved = C.resolvePool('distinct', true, tiny);
+    check('symmetric constitutions accept a single-group pool',
+        symResolved.caps.length === 1 && symResolved.subs.length === 1,
+        JSON.stringify(symResolved));
+}
+
+{
+    // R/S questions honour the pool too, and stay independently verifiable.
+    const pool = { caps: ['CN', 'COOH'], subs: ['SH', 'Cl'] };
+    let bad = 0, offPool = 0;
+    for (let i = 0; i < 400; i++) {
+        const q = C.generateRsQuestion(4, Math.random, pool);
+        if (!q) { bad++; continue; }
+        const again = C.descriptorAt(q.molecule.graph, q.centreAtom, q.molecule.positions);
+        if (!again || again.descriptor !== q.answer) bad++;
+        if (!pool.subs.includes(q.spec.subs[0]) || !pool.caps.includes(q.spec.caps[0])) offPool++;
+    }
+    check('400 pooled R/S questions verify from geometry', bad === 0, `${bad} bad`);
+    check('pooled R/S questions stay inside the pool', offPool === 0, `${offPool} off-pool`);
+}
+
 console.log(`\n${checks - failures}/${checks} checks passed`);
 process.exit(failures ? 1 : 0);

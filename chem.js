@@ -973,11 +973,34 @@ function moleculeTier(level) {
  * ranked stereocentres.
  */
 
-function randomConstitution(palette, symmetric, rng) {
+/*
+ * `pool` lets the caller override which groups may appear, for the
+ * settings panel's custom group selection. Falling back to the
+ * tier's own set per dimension means a pool too small to build from
+ * degrades rather than failing to generate anything.
+ */
+
+function resolvePool(palette, symmetric, pool) {
+
+    const tier = PALETTES[palette];
+
+    const needed = symmetric ? 1 : 2;
+
+    const usable = list =>
+        Array.isArray(list) && list.length >= needed;
+
+    return {
+        caps: usable(pool && pool.caps) ? pool.caps : tier.caps,
+        subs: usable(pool && pool.subs) ? pool.subs : tier.subs
+    };
+}
+
+
+function randomConstitution(palette, symmetric, rng, pool) {
 
     for (let attempt = 0; attempt < 200; attempt++) {
 
-        const p = PALETTES[palette];
+        const p = resolvePool(palette, symmetric, pool);
 
         let caps;
         let subs;
@@ -1025,7 +1048,7 @@ function randomConstitution(palette, symmetric, rng) {
  * compound.
  */
 
-function generateMoleculeRound(level, rng = Math.random) {
+function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
 
     const tier = moleculeTier(level);
 
@@ -1034,7 +1057,8 @@ function generateMoleculeRound(level, rng = Math.random) {
         const primary = randomConstitution(
             tier.palette,
             tier.symmetric,
-            rng
+            rng,
+            groupPool
         );
 
         if (!primary) {
@@ -1081,7 +1105,8 @@ function generateMoleculeRound(level, rng = Math.random) {
             const secondary = randomConstitution(
                 tier.palette,
                 rng() < 0.5 ? tier.symmetric : false,
-                rng
+                rng,
+                groupPool
             );
 
             if (!secondary) {
@@ -1162,7 +1187,7 @@ function generateMoleculeRound(level, rng = Math.random) {
  * One molecule, one queried stereocentre, answer is R or S.
  */
 
-function generateRsQuestion(level, rng = Math.random) {
+function generateRsQuestion(level, rng = Math.random, groupPool = null) {
 
     const tier = moleculeTier(level);
 
@@ -1171,7 +1196,8 @@ function generateRsQuestion(level, rng = Math.random) {
         const constitution = randomConstitution(
             tier.palette,
             tier.symmetric,
-            rng
+            rng,
+            groupPool
         );
 
         if (!constitution) {
@@ -1218,4 +1244,6 @@ module.exports.moleculeTier = moleculeTier;
 module.exports.generateMoleculeRound = generateMoleculeRound;
 module.exports.generateRsQuestion = generateRsQuestion;
 module.exports.PALETTES = PALETTES;
+module.exports.resolvePool = resolvePool;
+module.exports.randomConstitution = randomConstitution;
 module.exports.BACKBONE_STYLE = BACKBONE_STYLE;

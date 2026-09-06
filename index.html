@@ -26,7 +26,7 @@
 
     <style>
         :root {
-            --bg-color: #090d16;
+            --bg-color: #070b14;
             --panel-bg: #131b2e;
             --text-color: #f8fafc;
             --text-muted: #94a3b8;
@@ -34,7 +34,18 @@
             --accent-hover: #2563eb;
             --correct: #10b981;
             --wrong: #ef4444;
-            --card-border: #1e293b;
+            --card-border: #26334a;
+
+            /* Panels float over a lit 3D scene, so they are translucent
+               and blurred rather than solid slabs. */
+            --glass:
+                rgba(16, 23, 40, 0.72);
+            --glass-strong:
+                rgba(14, 20, 36, 0.88);
+            --shadow-soft:
+                0 10px 30px rgba(0, 0, 0, 0.45);
+            --shadow-lift:
+                0 18px 44px rgba(0, 0, 0, 0.6);
         }
 
         * {
@@ -78,10 +89,18 @@
         header {
             padding: 12px 24px;
 
-            background: var(--panel-bg);
+            background:
+                linear-gradient(
+                    180deg,
+                    #16203a 0%,
+                    #101728 100%
+                );
 
             border-bottom:
                 1px solid var(--card-border);
+
+            box-shadow:
+                0 2px 18px rgba(0, 0, 0, 0.45);
 
             display: flex;
             justify-content: space-between;
@@ -201,7 +220,12 @@
             top: 0;
             height: 100%;
             width: 100%;
-            background: var(--correct);
+            background:
+                linear-gradient(
+                    90deg,
+                    #059669 0%,
+                    #10b981 100%
+                );
             transition: width 0.1s linear, background-color 0.3s ease;
             box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
             border-radius: 0 4px 4px 0;
@@ -233,6 +257,14 @@
             position: absolute;
 
             inset: 0;
+
+            background:
+                radial-gradient(
+                    ellipse 120% 90% at 50% 8%,
+                    #16203a 0%,
+                    #0d1426 42%,
+                    #070b14 100%
+                );
 
             width: 100%;
             height: 100%;
@@ -287,22 +319,26 @@
         }
 
         .modal {
-            background: var(--panel-bg);
+            background:
+                linear-gradient(
+                    180deg,
+                    #18213a 0%,
+                    #111828 100%
+                );
 
             border:
                 1px solid var(--card-border);
 
-            border-radius: 16px;
+            border-radius: 18px;
 
-            padding: 32px;
+            padding: 34px;
 
             max-width: 480px;
 
             width: 100%;
 
             box-shadow:
-                0 20px 40px
-                rgba(0, 0, 0, 0.5);
+                var(--shadow-lift);
         }
 
         .modal h2 {
@@ -350,6 +386,13 @@
 
             transform:
                 translateY(-1px);
+
+            box-shadow:
+                0 6px 18px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         /* ============================================================
@@ -387,8 +430,9 @@
 
             gap: 4px;
 
-            background:
-                rgba(19, 27, 46, 0.92);
+            backdrop-filter: blur(10px);
+
+            background: var(--glass-strong);
 
             border:
                 1px solid var(--card-border);
@@ -438,11 +482,15 @@
             background: var(--accent);
 
             color: #ffffff;
+
+            box-shadow:
+                0 2px 12px rgba(59, 130, 246, 0.5);
         }
 
         .instruction-bar {
-            background:
-                rgba(19, 27, 46, 0.9);
+            backdrop-filter: blur(10px);
+
+            background: var(--glass);
 
             border:
                 1px solid var(--card-border);
@@ -517,6 +565,8 @@
         }
 
         .rs-btn {
+            backdrop-filter: blur(10px);
+
             width: 104px;
 
             padding: 13px 0;
@@ -533,7 +583,7 @@
                 1px solid var(--card-border);
 
             background:
-                rgba(19, 27, 46, 0.94);
+                var(--glass-strong);
 
             color: var(--text-color);
 
@@ -566,7 +616,7 @@
             display: none;
 
             background:
-                rgba(19, 27, 46, 0.94);
+                var(--glass-strong);
 
             border:
                 1px solid var(--card-border);
@@ -633,33 +683,238 @@
            SETTINGS
            ============================================================ */
 
-        .settings-panel {
+        .settings-toggle {
             position: absolute;
 
             bottom: 16px;
             right: 16px;
 
+            z-index: 7;
+
+            width: auto;
+
+            padding: 9px 16px;
+
+            font-size: 12px;
+
             background:
-                rgba(19, 27, 46, 0.9);
+                var(--glass-strong);
+
+            color: var(--text-muted);
+
+            border:
+                1px solid var(--card-border);
+        }
+
+        .settings-toggle:hover {
+            background: var(--panel-bg);
+
+            color: var(--text-color);
+
+            transform: none;
+        }
+
+        .settings-toggle.is-open {
+            background: var(--accent);
+
+            color: #ffffff;
+
+            border-color: var(--accent);
+        }
+
+        .settings-panel {
+            position: absolute;
+
+            backdrop-filter: blur(14px);
+
+            bottom: 60px;
+            right: 16px;
+
+            display: none;
+
+            flex-direction: column;
+
+            width: min(340px, calc(100vw - 32px));
+
+            max-height:
+                min(560px, calc(100dvh - 150px));
+
+            overflow-y: auto;
+
+            background:
+                var(--glass-strong);
 
             border:
                 1px solid var(--card-border);
 
-            padding: 12px 16px;
+            padding: 4px 16px 14px;
 
             border-radius: 12px;
 
-            display: flex;
+            gap: 0;
 
-            gap: 16px;
-
-            z-index: 5;
+            z-index: 7;
 
             font-size: 12px;
 
+            box-shadow:
+                0 16px 40px
+                rgba(0, 0, 0, 0.55);
+        }
+
+        .settings-panel.is-open {
+            display: flex;
+        }
+
+        .settings-section {
+            border-top:
+                1px solid var(--card-border);
+
+            padding: 12px 0 4px;
+        }
+
+        .settings-section:first-of-type {
+            border-top: none;
+        }
+
+        .settings-section > h3 {
+            margin: 0 0 10px;
+
+            font-size: 10px;
+
+            font-weight: 700;
+
+            letter-spacing: 0.7px;
+
+            text-transform: uppercase;
+
+            color: var(--text-muted);
+
+            opacity: 0.75;
+        }
+
+        .settings-section.is-disabled {
+            opacity: 0.4;
+
+            pointer-events: none;
+        }
+
+        .settings-row {
+            display: flex;
+
             align-items: center;
 
+            justify-content: space-between;
+
+            gap: 10px;
+
+            margin-bottom: 10px;
+
+            min-height: 22px;
+        }
+
+        .settings-hint {
+            margin: -4px 0 10px;
+
+            font-size: 10.5px;
+
+            line-height: 1.5;
+
+            color: var(--text-muted);
+
+            opacity: 0.75;
+        }
+
+        .group-grid {
+            display: flex;
+
             flex-wrap: wrap;
+
+            gap: 6px;
+
+            margin-bottom: 10px;
+        }
+
+        .group-chip {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            padding: 4px 9px;
+
+            border-radius: 999px;
+
+            border:
+                1px solid var(--card-border);
+
+            background: #0b1220;
+
+            color: var(--text-muted);
+
+            font-size: 11px;
+
+            font-family: monospace;
+
+            cursor: pointer;
+
+            user-select: none;
+        }
+
+        .group-chip input {
+            display: none;
+        }
+
+        .group-chip .swatch {
+            width: 9px;
+
+            height: 9px;
+
+            border-radius: 50%;
+
+            flex-shrink: 0;
+        }
+
+        .group-chip.is-on {
+            border-color: var(--accent);
+
+            background:
+                rgba(59, 130, 246, 0.16);
+
+            color: var(--text-color);
+        }
+
+        .settings-actions {
+            display: flex;
+
+            gap: 8px;
+
+            padding-top: 12px;
+
+            border-top:
+                1px solid var(--card-border);
+        }
+
+        .settings-actions .btn {
+            padding: 8px 12px;
+
+            font-size: 11.5px;
+        }
+
+        .btn-secondary {
+            background: transparent;
+
+            color: var(--text-muted);
+
+            border:
+                1px solid var(--card-border);
+        }
+
+        .btn-secondary:hover {
+            background: #0b1220;
+
+            color: var(--text-color);
         }
 
         .settings-panel label {
@@ -696,6 +951,25 @@
 
             accent-color:
                 var(--accent);
+
+            cursor: pointer;
+        }
+
+        .settings-control select {
+            padding: 5px 6px;
+
+            border:
+                1px solid var(--card-border);
+
+            border-radius: 6px;
+
+            background: #0b1220;
+
+            color: var(--text-color);
+
+            font: inherit;
+
+            font-size: 11.5px;
 
             cursor: pointer;
         }
@@ -805,10 +1079,6 @@
                 font-size: 11px;
             }
 
-            .rs-panel {
-                bottom: 118px;
-            }
-
             .rs-btn {
                 width: 88px;
 
@@ -817,17 +1087,25 @@
                 font-size: 18px;
             }
 
+            .settings-toggle {
+                bottom: 10px;
+                right: 10px;
+            }
+
             .settings-panel {
                 left: 10px;
                 right: 10px;
 
-                bottom: 10px;
+                bottom: 54px;
 
-                justify-content: center;
+                width: auto;
 
-                gap: 9px 12px;
+                max-height:
+                    calc(100dvh - 200px);
+            }
 
-                padding: 9px 10px;
+            .rs-panel {
+                bottom: 62px;
             }
 
             .settings-control input[type="range"] {
@@ -870,12 +1148,6 @@
         }
 
         @media (orientation: portrait) and (max-width: 600px) {
-
-            .settings-panel {
-                max-height: 92px;
-
-                overflow-y: auto;
-            }
 
             .instruction-bar {
                 max-width:
@@ -1092,79 +1364,228 @@
              SETTINGS
              ======================================================== -->
 
-        <div class="settings-panel">
-
-            <label>
-                <input
-                    type="checkbox"
-                    id="chk-sound"
-                    checked
-                >
-                Sound Effects
-            </label>
+        <button
+            class="btn settings-toggle"
+            id="btn-settings"
+            aria-expanded="false"
+            aria-controls="settings-panel"
+        >
+            Settings
+        </button>
 
 
-            <label>
-                <input
-                    type="checkbox"
-                    id="chk-speed"
-                    checked
-                >
-                Continuous Rotation
-            </label>
+        <div
+            class="settings-panel"
+            id="settings-panel"
+        >
 
+            <div class="settings-section">
 
-            <label>
-                <input
-                    type="checkbox"
-                    id="chk-adaptive"
-                    checked
-                >
-                Adaptive Difficulty
-            </label>
+                <h3>Session</h3>
 
+                <div class="settings-control settings-row">
 
-            <div class="settings-control">
+                    <span>Duration (min)</span>
 
-                <span>
-                    Rotation Speed
-                </span>
+                    <input
+                        type="number"
+                        id="session-minutes"
+                        min="1"
+                        max="60"
+                        value="2"
+                        step="1"
+                        aria-label="Session duration in minutes"
+                    >
 
-                <input
-                    type="range"
-                    id="rotation-speed"
-                    min="25"
-                    max="200"
-                    value="100"
-                    step="5"
-                    aria-label="Rotation speed"
-                >
+                </div>
 
-                <span
-                    class="settings-value"
-                    id="rotation-speed-value"
-                >
-                    100%
-                </span>
+                <div class="settings-control settings-row">
+
+                    <span>Time per trial</span>
+
+                    <select
+                        id="trial-time"
+                        aria-label="Seconds allowed per trial"
+                    >
+                        <option value="auto">Auto</option>
+                        <option value="8">8s</option>
+                        <option value="12">12s</option>
+                        <option value="15">15s</option>
+                        <option value="20">20s</option>
+                        <option value="30">30s</option>
+                        <option value="45">45s</option>
+                        <option value="60">60s</option>
+                        <option value="0">Untimed</option>
+                    </select>
+
+                </div>
+
+                <label class="settings-row">
+                    Sound effects
+                    <input
+                        type="checkbox"
+                        id="chk-sound"
+                        checked
+                    >
+                </label>
 
             </div>
 
 
-            <div class="settings-control">
+            <div class="settings-section">
 
-                <span>
-                    Session (min)
-                </span>
+                <h3>Difficulty</h3>
 
-                <input
-                    type="number"
-                    id="session-minutes"
-                    min="1"
-                    max="60"
-                    value="2"
-                    step="1"
-                    aria-label="Session duration in minutes"
+                <label class="settings-row">
+                    Adaptive difficulty
+                    <input
+                        type="checkbox"
+                        id="chk-adaptive"
+                        checked
+                    >
+                </label>
+
+                <div
+                    class="settings-control settings-row"
+                    id="manual-level-row"
                 >
+
+                    <span>Fixed level</span>
+
+                    <input
+                        type="range"
+                        id="manual-level"
+                        min="0"
+                        max="10"
+                        value="0"
+                        step="1"
+                        aria-label="Fixed difficulty level"
+                    >
+
+                    <span
+                        class="settings-value"
+                        id="manual-level-value"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+                <p
+                    class="settings-hint"
+                    id="manual-level-hint"
+                >
+                    Turn adaptive off to pick a level and hold it.
+                </p>
+
+            </div>
+
+
+            <div class="settings-section">
+
+                <h3>Display</h3>
+
+                <label class="settings-row">
+                    Continuous rotation
+                    <input
+                        type="checkbox"
+                        id="chk-speed"
+                        checked
+                    >
+                </label>
+
+                <div class="settings-control settings-row">
+
+                    <span>Rotation speed</span>
+
+                    <input
+                        type="range"
+                        id="rotation-speed"
+                        min="25"
+                        max="200"
+                        value="100"
+                        step="5"
+                        aria-label="Rotation speed"
+                    >
+
+                    <span
+                        class="settings-value"
+                        id="rotation-speed-value"
+                    >
+                        100%
+                    </span>
+
+                </div>
+
+                <label class="settings-row">
+                    Group labels
+                    <input
+                        type="checkbox"
+                        id="chk-labels"
+                        checked
+                    >
+                </label>
+
+                <label class="settings-row">
+                    Colour-blind safe palette
+                    <input
+                        type="checkbox"
+                        id="chk-cvd"
+                    >
+                </label>
+
+            </div>
+
+
+            <div
+                class="settings-section"
+                id="chemistry-section"
+            >
+
+                <h3>Chemistry</h3>
+
+                <label class="settings-row">
+                    Choose groups myself
+                    <input
+                        type="checkbox"
+                        id="chk-custom-groups"
+                    >
+                </label>
+
+                <div id="group-picker">
+
+                    <p class="settings-hint">End groups</p>
+
+                    <div
+                        class="group-grid"
+                        id="cap-grid"
+                    ></div>
+
+                    <p class="settings-hint">Substituents</p>
+
+                    <div
+                        class="group-grid"
+                        id="sub-grid"
+                    ></div>
+
+                    <p
+                        class="settings-hint"
+                        id="group-warning"
+                    ></p>
+
+                </div>
+
+            </div>
+
+
+            <div class="settings-actions">
+
+                <button
+                    class="btn btn-secondary"
+                    id="btn-reset-settings"
+                >
+                    Reset settings
+                </button>
 
             </div>
 
@@ -1425,8 +1846,18 @@
         /* ================================================================
          * STEREOCHEMISTRY CORE
          *
+         * This is the reference copy and the one the tests run against:
+         *
+         *     node chem.test.js     CIP ranking, R/S, meso, geometry
+         *     node round.test.js    round generation invariants
+         *
+         * The same code is embedded verbatim inside index.html
+         * (minus the module.exports block),
+         * because the trainer ships as a single self-contained file. Change
+         * this copy first, re-run both suites, then port the change across.
+         *
          * Pure logic, no Three.js. Kept free of rendering concerns so it
-         * can be unit tested in isolation (see chem.test.js).
+         * can be unit tested in isolation.
          *
          * Scaffold used throughout:
          *
@@ -2361,11 +2792,34 @@
          * ranked stereocentres.
          */
 
-        function randomConstitution(palette, symmetric, rng) {
+        /*
+         * `pool` lets the caller override which groups may appear, for the
+         * settings panel's custom group selection. Falling back to the
+         * tier's own set per dimension means a pool too small to build from
+         * degrades rather than failing to generate anything.
+         */
+
+        function resolvePool(palette, symmetric, pool) {
+
+            const tier = PALETTES[palette];
+
+            const needed = symmetric ? 1 : 2;
+
+            const usable = list =>
+                Array.isArray(list) && list.length >= needed;
+
+            return {
+                caps: usable(pool && pool.caps) ? pool.caps : tier.caps,
+                subs: usable(pool && pool.subs) ? pool.subs : tier.subs
+            };
+        }
+
+
+        function randomConstitution(palette, symmetric, rng, pool) {
 
             for (let attempt = 0; attempt < 200; attempt++) {
 
-                const p = PALETTES[palette];
+                const p = resolvePool(palette, symmetric, pool);
 
                 let caps;
                 let subs;
@@ -2413,7 +2867,7 @@
          * compound.
          */
 
-        function generateMoleculeRound(level, rng = Math.random) {
+        function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
 
             const tier = moleculeTier(level);
 
@@ -2422,7 +2876,8 @@
                 const primary = randomConstitution(
                     tier.palette,
                     tier.symmetric,
-                    rng
+                    rng,
+                    groupPool
                 );
 
                 if (!primary) {
@@ -2469,7 +2924,8 @@
                     const secondary = randomConstitution(
                         tier.palette,
                         rng() < 0.5 ? tier.symmetric : false,
-                        rng
+                        rng,
+                        groupPool
                     );
 
                     if (!secondary) {
@@ -2550,7 +3006,7 @@
          * One molecule, one queried stereocentre, answer is R or S.
          */
 
-        function generateRsQuestion(level, rng = Math.random) {
+        function generateRsQuestion(level, rng = Math.random, groupPool = null) {
 
             const tier = moleculeTier(level);
 
@@ -2559,7 +3015,8 @@
                 const constitution = randomConstitution(
                     tier.palette,
                     tier.symmetric,
-                    rng
+                    rng,
+                    groupPool
                 );
 
                 if (!constitution) {
@@ -2742,6 +3199,115 @@
             return moved;
         }
 
+        /* ============================================================
+           SETTINGS
+
+           Preferences are stored separately from progress: progress is a
+           record of what happened and should never be lost by fiddling
+           with the controls, whereas this is just how the trainer is set
+           up right now. Same defensive load, since storage can be off.
+           ============================================================ */
+
+        const SETTINGS_KEY = 'spatial-rotation.settings.v1';
+
+        /* Every group the generator knows, split by where it can sit. CH3
+           appears in both because it is a valid cap and a valid
+           substituent. */
+        const ALL_CAPS = ['COOH', 'CHO', 'CH2OH', 'CH3', 'CN'];
+        const ALL_SUBS = ['OH', 'NH2', 'SH', 'Cl', 'F', 'CH3'];
+
+        /* An asymmetric constitution needs two of each; below that the
+           generator would have to fall back and silently ignore the
+           choice, so the picker refuses to go there. */
+        const MIN_PICKED = 2;
+
+        function defaultSettings() {
+            return {
+                mode: 'blocks',
+                sessionMinutes: 2,
+                trialTime: 'auto',
+                sound: true,
+                adaptive: true,
+                manualLevel: 0,
+                rotation: true,
+                rotationSpeed: 100,
+                labels: true,
+                cvd: false,
+                customGroups: false,
+                caps: ALL_CAPS.slice(),
+                subs: ALL_SUBS.slice()
+            };
+        }
+
+        function loadSettings() {
+            const defaults = defaultSettings();
+            let stored = null;
+            try {
+                stored = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+            } catch (e) { /* unreadable or storage off */ }
+            if (!stored || typeof stored !== 'object') return defaults;
+
+            const merged = Object.assign(defaults, stored);
+
+            /* A stored list from an older build could name groups that no
+               longer exist, or be short enough to break generation. */
+            const clean = (list, allowed) =>
+                Array.isArray(list)
+                    ? list.filter(g => allowed.includes(g))
+                    : [];
+
+            merged.caps = clean(merged.caps, ALL_CAPS);
+            merged.subs = clean(merged.subs, ALL_SUBS);
+
+            if (merged.caps.length < MIN_PICKED) merged.caps = ALL_CAPS.slice();
+            if (merged.subs.length < MIN_PICKED) merged.subs = ALL_SUBS.slice();
+
+            if (!PROGRESS_MODES.includes(merged.mode)) merged.mode = 'blocks';
+
+            return merged;
+        }
+
+        let uiSettings = loadSettings();
+
+        function saveSettings() {
+            try {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(uiSettings));
+            } catch (e) { /* quota or storage off; the session still plays */ }
+        }
+
+        /* null means "use the level's own group set". */
+        function groupPool() {
+            if (!uiSettings.customGroups) return null;
+            return { caps: uiSettings.caps, subs: uiSettings.subs };
+        }
+
+
+        /* A palette that stays separable for the common forms of colour
+           blindness — the stock one pairs a red OH against a green Cl,
+           which is exactly the confusable pair. Labels still carry the
+           real identity; this matters most when labels are turned off. */
+        const CVD_COLORS = {
+            H: 0xeeeeee,
+            C: 0x8899aa,
+            OH: 0xd55e00,
+            NH2: 0x0072b2,
+            SH: 0xf0e442,
+            Cl: 0x009e73,
+            F: 0x56b4e9,
+            CH3: 0xcc79a7,
+            CH2OH: 0xe69f00,
+            COOH: 0x8c5109,
+            CHO: 0x7b4fa0,
+            CN: 0x3b5ba5
+        };
+
+        function paletteColor(label, fallback) {
+            if (!uiSettings.cvd) return fallback;
+            const alt = CVD_COLORS[label];
+            return alt === undefined ? fallback : alt;
+        }
+
+
         /* The highest level actually reached this session, which is what the
            record should carry — the ending level can be a dip. */
         let sessionPeakLevel = 0;
@@ -2781,9 +3347,56 @@
             new THREE.Scene();
 
 
+        /*
+         * The scene clears to nothing so the container's CSS gradient
+         * shows through. A flat fill made everything read as cut-out
+         * shapes on a wall; a soft vignette gives the objects some air
+         * to float in.
+         */
+
+        function buildBackdropTexture() {
+
+            const canvas =
+                document.createElement('canvas');
+
+            canvas.width = 64;
+            canvas.height = 64;
+
+            const ctx =
+                canvas.getContext('2d');
+
+            const gradient =
+                ctx.createRadialGradient(
+                    32, 6, 4,
+                    32, 30, 52
+                );
+
+            gradient.addColorStop(0, '#1b2745');
+            gradient.addColorStop(0.45, '#0e1628');
+            gradient.addColorStop(1, '#070b14');
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+
+            const texture =
+                new THREE.CanvasTexture(canvas);
+
+            texture.colorSpace =
+                THREE.SRGBColorSpace;
+
+            return texture;
+        }
+
+
         scene.background =
-            new THREE.Color(
-                '#090d16'
+            buildBackdropTexture();
+
+
+        scene.fog =
+            new THREE.Fog(
+                0x0a1020,
+                30,
+                58
             );
 
 
@@ -2840,6 +3453,19 @@
                     'high-performance'
 
             });
+
+
+        /*
+         * Filmic tone mapping keeps the bright highlights on the atoms
+         * from clipping to flat white, which is what made the previous
+         * lighting read as plastic.
+         */
+
+        renderer.toneMapping =
+            THREE.ACESFilmicToneMapping;
+
+
+        renderer.toneMappingExposure = 1.15;
 
 
         renderer.setPixelRatio(
@@ -2927,50 +3553,66 @@
         // LIGHTING
         // ============================================================
 
+        /*
+         * A flat ambient wash plus one directional light left every
+         * sphere looking like a disc. This is an ordinary key / fill /
+         * rim set: the hemisphere light supplies sky-to-ground
+         * variation, the key throws the highlight, and the warm rim
+         * behind separates the objects from the background.
+         */
+
         scene.add(
-            new THREE.AmbientLight(
-                0xffffff,
-                0.5
+            new THREE.HemisphereLight(
+                0xbcd8ff,
+                0x141c30,
+                1.15
             )
         );
 
 
-        const dirLight =
+        const keyLight =
             new THREE.DirectionalLight(
                 0xffffff,
-                0.7
+                2.4
             );
 
-
-        dirLight.position.set(
-            20,
-            30,
-            20
+        keyLight.position.set(
+            14,
+            22,
+            18
         );
 
-
-        scene.add(
-            dirLight
-        );
+        scene.add(keyLight);
 
 
         const fillLight =
             new THREE.DirectionalLight(
-                0x90b0d0,
-                0.4
+                0x7ea8e0,
+                0.85
             );
 
-
         fillLight.position.set(
-            -20,
+            -18,
+            -6,
+            10
+        );
+
+        scene.add(fillLight);
+
+
+        const rimLight =
+            new THREE.DirectionalLight(
+                0xffd2a1,
+                1.5
+            );
+
+        rimLight.position.set(
             -10,
+            8,
             -20
         );
 
-
-        scene.add(
-            fillLight
-        );
+        scene.add(rimLight);
 
 
         // ============================================================
@@ -2999,28 +3641,39 @@
         // MATERIALS
         // ============================================================
 
+        /*
+         * Standard rather than Lambert throughout, so surfaces pick up a
+         * highlight and the forms read as solid under the new lighting.
+         */
+
+        const blockSurface = {
+            roughness: 0.52,
+            metalness: 0.04
+        };
+
+
         const matDefault =
-            new THREE.MeshLambertMaterial({
-                color: 0xe2e8f0
-            });
+            new THREE.MeshStandardMaterial(
+                Object.assign({ color: 0xdbe4f0 }, blockSurface)
+            );
 
 
         const matSelected =
-            new THREE.MeshLambertMaterial({
-                color: 0xf59e0b
-            });
+            new THREE.MeshStandardMaterial(
+                Object.assign({ color: 0xf59e0b }, blockSurface)
+            );
 
 
         const matCorrect =
-            new THREE.MeshLambertMaterial({
-                color: 0x10b981
-            });
+            new THREE.MeshStandardMaterial(
+                Object.assign({ color: 0x10b981 }, blockSurface)
+            );
 
 
         const matWrong =
-            new THREE.MeshLambertMaterial({
-                color: 0xef4444
-            });
+            new THREE.MeshStandardMaterial(
+                Object.assign({ color: 0xef4444 }, blockSurface)
+            );
 
 
         const edgeMat =
@@ -3143,7 +3796,7 @@
             const columnSpread =
                 Math.min(
 
-                    6.9,
+                    9.2,
 
                     Math.max(
                         2.25,
@@ -3160,7 +3813,7 @@
             const rowSpread =
                 Math.min(
 
-                    3.65,
+                    4.9,
 
                     Math.max(
                         1.9,
@@ -3232,7 +3885,7 @@
             responsiveShapeLimit =
                 Math.min(
 
-                    4.8,
+                    5.6,
 
                     Math.max(
                         1.7,
@@ -3252,15 +3905,19 @@
              * viewport instead of one grid cell.
              */
 
+            /*
+             * Read as the diameter the single R/S molecule may occupy.
+             * Height is almost always the binding constraint, and the
+             * margin leaves room for the labels that sit proud of the
+             * outermost atoms.
+             */
+
             soloShapeLimit =
-                Math.min(
-                    9.5,
-                    Math.max(
-                        3.4,
-                        Math.min(
-                            safeWidth * 1.25,
-                            safeHeight * 1.55
-                        )
+                Math.max(
+                    3.4,
+                    Math.min(
+                        safeHeight * 1.62,
+                        safeWidth * 1.15
                     )
                 );
 
@@ -3319,17 +3976,17 @@
 
             selected: {
                 bond: 0xf59e0b,
-                emissive: 0x4a2c02
+                emissive: 0x3a2202
             },
 
             correct: {
                 bond: 0x10b981,
-                emissive: 0x04372a
+                emissive: 0x032a20
             },
 
             wrong: {
                 bond: 0xef4444,
-                emissive: 0x4c1111
+                emissive: 0x3a0d0d
             }
         };
 
@@ -3359,15 +4016,17 @@
                 document.createElement('canvas');
 
 
-            const ctx =
+            const measure =
                 canvas.getContext('2d');
 
 
-            const fontSize = 76;
+            const fontSize = 84;
 
-            const subSize = 52;
+            const subSize = 56;
 
-            const pad = 22;
+            const padX = 30;
+
+            const padY = 20;
 
 
             /*
@@ -3383,71 +4042,90 @@
                 );
 
 
-            ctx.font =
-                `700 ${fontSize}px "Segoe UI", Helvetica, Arial, sans-serif`;
+            const fontFor = g =>
+                `700 ${g.sub ? subSize : fontSize}px ` +
+                `"Segoe UI", Helvetica, Arial, sans-serif`;
 
 
             let width = 0;
 
             glyphs.forEach(
                 g => {
-
-                    ctx.font =
-                        `700 ${g.sub ? subSize : fontSize}px "Segoe UI", Helvetica, Arial, sans-serif`;
-
-                    width += ctx.measureText(g.ch).width;
+                    measure.font = fontFor(g);
+                    width += measure.measureText(g.ch).width;
                 }
             );
 
 
             canvas.width =
-                Math.ceil(width) + pad * 2;
+                Math.ceil(width) + padX * 2;
 
             canvas.height =
-                fontSize + pad * 2;
+                fontSize + padY * 2;
 
 
-            const ctx2 =
+            const ctx =
                 canvas.getContext('2d');
 
 
-            ctx2.textBaseline = 'alphabetic';
+            /*
+             * A dark rounded plate behind the text. Labels have to be
+             * small enough not to collide with the neighbouring atom's
+             * label, and at that size plain text on a lit sphere was
+             * washing out; the plate keeps them readable without
+             * growing them back.
+             */
+
+            const radius =
+                canvas.height / 2;
+
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(canvas.width - radius, 0);
+            ctx.quadraticCurveTo(canvas.width, 0, canvas.width, radius);
+            ctx.lineTo(canvas.width, canvas.height - radius);
+            ctx.quadraticCurveTo(
+                canvas.width, canvas.height,
+                canvas.width - radius, canvas.height
+            );
+            ctx.lineTo(radius, canvas.height);
+            ctx.quadraticCurveTo(0, canvas.height, 0, canvas.height - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+
+            ctx.fillStyle = 'rgba(7, 11, 20, 0.82)';
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(190, 214, 255, 0.28)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
 
 
-            let x = pad;
+            ctx.textBaseline = 'alphabetic';
+
+
+            let x = padX;
 
             const baseline =
-                pad + fontSize * 0.82;
+                padY + fontSize * 0.80;
 
 
             glyphs.forEach(
                 g => {
 
-                    ctx2.font =
-                        `700 ${g.sub ? subSize : fontSize}px "Segoe UI", Helvetica, Arial, sans-serif`;
-
+                    ctx.font = fontFor(g);
 
                     const y =
                         g.sub
-                            ? baseline + fontSize * 0.16
+                            ? baseline + fontSize * 0.14
                             : baseline;
 
+                    ctx.fillStyle = '#f5f9ff';
 
-                    ctx2.lineJoin = 'round';
+                    ctx.fillText(g.ch, x, y);
 
-                    ctx2.strokeStyle = 'rgba(2, 6, 16, 0.95)';
-
-                    ctx2.lineWidth = 12;
-
-                    ctx2.strokeText(g.ch, x, y);
-
-
-                    ctx2.fillStyle = '#ffffff';
-
-                    ctx2.fillText(g.ch, x, y);
-
-
-                    x += ctx2.measureText(g.ch).width;
+                    x += ctx.measureText(g.ch).width;
                 }
             );
 
@@ -3456,7 +4134,10 @@
                 new THREE.CanvasTexture(canvas);
 
 
-            texture.anisotropy = 4;
+            texture.colorSpace =
+                THREE.SRGBColorSpace;
+
+            texture.anisotropy = 8;
 
             texture.needsUpdate = true;
 
@@ -3521,7 +4202,8 @@
 
         function fitGroup(
             group,
-            limit
+            limit,
+            mode
         ) {
 
             const box =
@@ -3562,6 +4244,30 @@
 
 
             if (
+                mode === 'fill'
+            ) {
+
+                /*
+                 * Scale to the space available rather than only
+                 * shrinking to fit it, and measure the bounding sphere
+                 * instead of the box: a single spinning molecule turns
+                 * through every orientation, so the box diagonal is what
+                 * has to stay on screen.
+                 */
+
+                const radius =
+                    centeredBox
+                        .getBoundingSphere(
+                            new THREE.Sphere()
+                        )
+                        .radius || 1;
+
+
+                group.scale.setScalar(
+                    limit / (radius * 2)
+                );
+
+            } else if (
                 maxDimension > limit
             ) {
 
@@ -3610,8 +4316,10 @@
 
 
             const bondMaterial =
-                new THREE.MeshLambertMaterial({
-                    color: BOND_IDLE_COLOR
+                new THREE.MeshStandardMaterial({
+                    color: BOND_IDLE_COLOR,
+                    roughness: 0.38,
+                    metalness: 0.30
                 });
 
 
@@ -3682,12 +4390,19 @@
 
 
                     const material =
-                        new THREE.MeshLambertMaterial({
+                        new THREE.MeshStandardMaterial({
 
                             color:
                                 isQueried
                                     ? 0x38bdf8
-                                    : atom.color
+                                    : paletteColor(
+                                        atom.label,
+                                        atom.color
+                                    ),
+
+                            roughness: 0.34,
+
+                            metalness: 0.05
 
                         });
 
@@ -3720,6 +4435,23 @@
                     atomMeshes[atom.atomId] = mesh;
 
 
+                    /*
+                     * With labels off the groups have to be told apart by
+                     * colour alone, which is the harder drill. The queried
+                     * centre keeps its marker either way, since that is
+                     * the question rather than a hint.
+                     */
+
+                    if (
+                        !uiSettings.labels &&
+                        !isQueried
+                    ) {
+
+                        return;
+
+                    }
+
+
                     labelSeeds.push({
 
                         atomId: atom.atomId,
@@ -3734,10 +4466,16 @@
 
                         radius,
 
+                        /*
+                         * Sized down from 0.46/0.40: at the old size a
+                         * COOH label reached past its own sphere and
+                         * collided with the neighbouring atom's.
+                         */
+
                         height:
                             atom.label.length > 2
-                                ? 0.40
-                                : 0.46
+                                ? 0.29
+                                : 0.34
 
                     });
                 }
@@ -3749,7 +4487,8 @@
                     innerGroup,
                     opts.sizeLimit !== undefined
                         ? opts.sizeLimit
-                        : responsiveShapeLimit
+                        : responsiveShapeLimit,
+                    opts.fit
                 );
 
 
@@ -3893,7 +4632,7 @@
         };
 
 
-        let currentMode = 'blocks';
+        let currentMode = uiSettings.mode;
 
 
         function modeConfig() {
@@ -4255,57 +4994,57 @@
                 baseRotationMultiplier;
 
 
-            if (
-                !adaptiveEnabled
-            ) {
-
-                return {
-
-                    level: 0,
-
-                    numCubes: 10,
-
-                    speedScale:
-                        0.008 *
-                        manualSpeed,
-
-                    trialSeconds:
-                        modeConfig().baseSeconds
-
-                };
-
-            }
-
             /*
-             * Each mode sets its own starting and floor time, and
-             * the level decay stays proportional to that base, so
-             * molecule trials never collapse to a block-mode pace.
+             * Adaptive search and the fixed-level setting feed the same
+             * curve; only the source of the level differs. Previously the
+             * non-adaptive branch hard-coded level 0, which made the
+             * higher tiers — meso traps included — reachable only by
+             * letting the search climb to them.
              */
+
+            const level =
+                adaptiveEnabled
+                    ? adaptiveLevel
+                    : uiSettings.manualLevel;
+
 
             const modeTiming = modeConfig();
 
-            const baseAdaptiveTime = Math.max(
-                modeTiming.floorSeconds + 1,
-                modeTiming.baseSeconds -
-                    adaptiveLevel * modeTiming.baseSeconds * 0.073
-            );
 
-            const finalTrialSeconds = Math.max(
-                modeTiming.floorSeconds,
-                baseAdaptiveTime + timeModifier
-            );
+            let trialSeconds;
+
+            if (uiSettings.trialTime === 'auto') {
+
+                const baseAdaptiveTime = Math.max(
+                    modeTiming.floorSeconds + 1,
+                    modeTiming.baseSeconds -
+                        level * modeTiming.baseSeconds * 0.073
+                );
+
+                trialSeconds = Math.max(
+                    modeTiming.floorSeconds,
+                    baseAdaptiveTime +
+                        (adaptiveEnabled ? timeModifier : 0)
+                );
+
+            } else if (uiSettings.trialTime === 0) {
+
+                /* Untimed: nothing counts down and nothing times out. */
+                trialSeconds = Infinity;
+
+            } else {
+
+                trialSeconds = uiSettings.trialTime;
+            }
+
 
             return {
 
-                level:
-                    adaptiveLevel,
+                level,
 
                 numCubes:
                     Math.min(
-                        10 +
-                            adaptiveLevel *
-                            2,
-
+                        10 + level * 2,
                         30
                     ),
 
@@ -4313,12 +5052,11 @@
 
                     (
                         0.008 +
-                        adaptiveLevel *
-                            0.0012
+                        level * 0.0012
                     ) *
                     manualSpeed,
 
-                trialSeconds: finalTrialSeconds
+                trialSeconds
 
             };
         }
@@ -4350,6 +5088,18 @@
                 getDifficultySettings();
 
 
+            /*
+             * With no trial limit there is no allowance to be fast
+             * against, so judge the response against the mode's normal
+             * allowance instead of dividing by infinity.
+             */
+
+            const referenceSeconds =
+                Number.isFinite(currentSettings.trialSeconds)
+                    ? currentSettings.trialSeconds
+                    : modeConfig().baseSeconds;
+
+
             const responseRatio =
                 timedOut
 
@@ -4359,8 +5109,7 @@
 
                         responseMs /
                             (
-                                currentSettings
-                                    .trialSeconds *
+                                referenceSeconds *
                                 1000
                             ),
 
@@ -4488,6 +5237,20 @@
 
 
             updateDashboard();
+
+
+            /*
+             * Untimed trials still time the response for the adaptive
+             * search, they just never expire.
+             */
+
+            if (
+                !Number.isFinite(settings.trialSeconds)
+            ) {
+
+                return;
+
+            }
 
 
             trialTimer =
@@ -5061,7 +5824,9 @@
 
             const round =
                 generateMoleculeRound(
-                    settings.level
+                    settings.level,
+                    Math.random,
+                    groupPool()
                 );
 
 
@@ -5141,7 +5906,9 @@
 
             const question =
                 generateRsQuestion(
-                    settings.level
+                    settings.level,
+                    Math.random,
+                    groupPool()
                 );
 
 
@@ -5163,7 +5930,8 @@
                     question.molecule,
                     {
                         highlightAtom: question.centreAtom,
-                        sizeLimit: soloShapeLimit
+                        sizeLimit: soloShapeLimit,
+                        fit: 'fill'
                     }
                 );
 
@@ -6164,6 +6932,10 @@
                 `${acc}%`;
 
 
+            const trialIsTimed =
+                Number.isFinite(trialTimeRemaining);
+
+
             const trialMins =
                 Math.floor(
                     trialTimeRemaining /
@@ -6193,20 +6965,29 @@
                     'stat-timer'
                 )
                 .innerText =
-                `${trialMins}:${trialSecs}`;
+                trialIsTimed
+                    ? `${trialMins}:${trialSecs}`
+                    : '∞';
+
+            /*
+             * Report the level actually in force, which is the fixed one
+             * when adaptive search is switched off.
+             */
 
             document
                 .getElementById(
                     'stat-diff'
                 )
                 .innerText =
-                `Lv. ${adaptiveLevel}`;
+                `Lv. ${getDifficultySettings().level}`;
 
             // Visual Timer Bar Update
             const timerFill = document.getElementById('timer-bar-fill');
             if (timerFill) {
                 const totalTrialTime = getDifficultySettings().trialSeconds;
-                const percentage = Math.max(0, (trialTimeRemaining / totalTrialTime) * 100);
+                const percentage = trialIsTimed
+                    ? Math.max(0, (trialTimeRemaining / totalTrialTime) * 100)
+                    : 100;
                 timerFill.style.width = `${percentage}%`;
 
                 // Shift color states to add pressure
@@ -7008,61 +7789,284 @@
 
 
         // ============================================================
-        // SETTINGS
+        // SETTINGS PANEL
         // ============================================================
 
-        document
-            .getElementById(
-                'rotation-speed'
-            )
-            .addEventListener(
-                'input',
-                updateRotationSpeedLabel
-            );
+        const settingsPanel =
+            document.getElementById('settings-panel');
+
+        const settingsToggle =
+            document.getElementById('btn-settings');
 
 
-        document
-            .getElementById(
-                'session-minutes'
-            )
-            .addEventListener(
-                'change',
-                event => {
+        function setSettingsOpen(open) {
+            settingsPanel.classList.toggle('is-open', open);
+            settingsToggle.classList.toggle('is-open', open);
+            settingsToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        }
 
-                    let value =
-                        Number(
-                            event.target.value
-                        );
+        settingsToggle.addEventListener('click', () => {
+            setSettingsOpen(!settingsPanel.classList.contains('is-open'));
+        });
 
+        /* Click anywhere else to dismiss, but not on the canvas drag that
+           happens to end outside the panel. */
+        document.addEventListener('pointerdown', event => {
+            if (!settingsPanel.classList.contains('is-open')) return;
+            if (settingsPanel.contains(event.target)) return;
+            if (settingsToggle.contains(event.target)) return;
+            setSettingsOpen(false);
+        });
 
-                    if (
-                        !Number.isFinite(
-                            value
-                        )
-                    ) {
-
-                        value = 2;
-
-                    }
-
-
-                    value =
-                        Math.max(
-                            1,
-                            Math.min(
-                                60,
-                                Math.round(
-                                    value
-                                )
-                            )
-                        );
+        window.addEventListener('keydown', event => {
+            if (event.key === 'Escape') setSettingsOpen(false);
+        });
 
 
-                    event.target.value =
-                        value;
+        // ------------------------------------------------------------
+        // GROUP PICKER
+        // ------------------------------------------------------------
 
+        function buildGroupGrid(containerId, keys, kind) {
+
+            const grid = document.getElementById(containerId);
+
+            grid.innerHTML = '';
+
+            keys.forEach(key => {
+
+                const chip = document.createElement('label');
+                chip.className = 'group-chip';
+
+                const box = document.createElement('input');
+                box.type = 'checkbox';
+                box.dataset.kind = kind;
+                box.dataset.group = key;
+
+                const swatch = document.createElement('span');
+                swatch.className = 'swatch';
+
+                const text = document.createElement('span');
+                text.textContent = GROUPS[key].label;
+
+                chip.appendChild(box);
+                chip.appendChild(swatch);
+                chip.appendChild(text);
+                grid.appendChild(chip);
+
+                box.addEventListener('change', () => onGroupToggled(kind, key, box));
+            });
+        }
+
+
+        /* Refuse the change rather than accept a selection the generator
+           would have to quietly ignore. */
+        function onGroupToggled(kind, key, box) {
+
+            const list = kind === 'cap' ? uiSettings.caps : uiSettings.subs;
+
+            if (box.checked) {
+                if (!list.includes(key)) list.push(key);
+            } else {
+                if (list.length <= MIN_PICKED) {
+                    box.checked = true;
+                    flashGroupWarning();
+                    return;
                 }
+                const at = list.indexOf(key);
+                if (at !== -1) list.splice(at, 1);
+            }
+
+            saveSettings();
+            syncGroupChips();
+        }
+
+
+        let groupWarningTimer = null;
+
+        function flashGroupWarning() {
+            const warning = document.getElementById('group-warning');
+            warning.textContent =
+                `Keep at least ${MIN_PICKED} of each — fewer than that and a ` +
+                `two-stereocentre chain cannot be built.`;
+            clearTimeout(groupWarningTimer);
+            groupWarningTimer = setTimeout(() => { warning.textContent = ''; }, 4000);
+        }
+
+
+        function syncGroupChips() {
+
+            document.querySelectorAll('#group-picker input[type="checkbox"]')
+                .forEach(box => {
+
+                    const list = box.dataset.kind === 'cap'
+                        ? uiSettings.caps
+                        : uiSettings.subs;
+
+                    const on = list.includes(box.dataset.group);
+
+                    box.checked = on;
+                    box.parentElement.classList.toggle('is-on', on);
+
+                    const swatch = box.parentElement.querySelector('.swatch');
+                    const colour = paletteColor(
+                        GROUPS[box.dataset.group].label,
+                        GROUPS[box.dataset.group].color
+                    );
+                    swatch.style.background = '#' + colour.toString(16).padStart(6, '0');
+                });
+
+            document.getElementById('group-picker').style.display =
+                uiSettings.customGroups ? '' : 'none';
+        }
+
+
+        // ------------------------------------------------------------
+        // APPLY / PERSIST
+        // ------------------------------------------------------------
+
+        const $ = id => document.getElementById(id);
+
+
+        /* Push the stored settings into the controls. Runs once at start
+           and again after a reset. */
+        function applySettingsToControls() {
+
+            $('session-minutes').value = uiSettings.sessionMinutes;
+            $('trial-time').value = String(uiSettings.trialTime);
+            $('chk-sound').checked = uiSettings.sound;
+            $('chk-adaptive').checked = uiSettings.adaptive;
+            $('manual-level').value = uiSettings.manualLevel;
+            $('chk-speed').checked = uiSettings.rotation;
+            $('rotation-speed').value = uiSettings.rotationSpeed;
+            $('chk-labels').checked = uiSettings.labels;
+            $('chk-cvd').checked = uiSettings.cvd;
+            $('chk-custom-groups').checked = uiSettings.customGroups;
+
+            syncGroupChips();
+            updateRotationSpeedLabel();
+            updateManualLevelUi();
+        }
+
+
+        /* The fixed-level slider only means anything with adaptive off. */
+        function updateManualLevelUi() {
+
+            const adaptive = $('chk-adaptive').checked;
+
+            $('manual-level-value').innerText = uiSettings.manualLevel;
+
+            $('manual-level-row').style.opacity = adaptive ? '0.4' : '1';
+            $('manual-level').disabled = adaptive;
+
+            $('manual-level-hint').textContent = adaptive
+                ? 'Turn adaptive off to pick a level and hold it.'
+                : levelDescription(uiSettings.manualLevel);
+        }
+
+
+        /* Say what the chosen level actually contains, since the number
+           on its own does not tell you whether meso forms are in play. */
+        function levelDescription(level) {
+
+            if (currentMode === 'blocks') {
+                return `${Math.min(10 + level * 2, 30)} blocks per shape.`;
+            }
+
+            const tier = moleculeTier(level);
+
+            return (
+                (tier.palette === 'similar'
+                    ? 'Chemically similar groups'
+                    : 'Visually distinct groups') +
+                (tier.symmetric
+                    ? ', symmetric constitutions — meso forms appear.'
+                    : ', no meso forms.')
             );
+        }
+
+
+        function bindSetting(id, event, read) {
+            $(id).addEventListener(event, () => {
+                read();
+                saveSettings();
+            });
+        }
+
+        bindSetting('chk-sound', 'change', () => {
+            uiSettings.sound = $('chk-sound').checked;
+        });
+
+        bindSetting('chk-speed', 'change', () => {
+            uiSettings.rotation = $('chk-speed').checked;
+        });
+
+        bindSetting('chk-labels', 'change', () => {
+            uiSettings.labels = $('chk-labels').checked;
+            if (sessionActive) spawnRound();
+        });
+
+        bindSetting('chk-cvd', 'change', () => {
+            uiSettings.cvd = $('chk-cvd').checked;
+            syncGroupChips();
+            if (sessionActive) spawnRound();
+        });
+
+        bindSetting('chk-adaptive', 'change', () => {
+            uiSettings.adaptive = $('chk-adaptive').checked;
+            updateManualLevelUi();
+        });
+
+        bindSetting('manual-level', 'input', () => {
+            uiSettings.manualLevel = Number($('manual-level').value);
+            updateManualLevelUi();
+        });
+
+        bindSetting('trial-time', 'change', () => {
+            const raw = $('trial-time').value;
+            uiSettings.trialTime = raw === 'auto' ? 'auto' : Number(raw);
+        });
+
+        bindSetting('chk-custom-groups', 'change', () => {
+            uiSettings.customGroups = $('chk-custom-groups').checked;
+            syncGroupChips();
+            if (sessionActive && currentMode !== 'blocks') spawnRound();
+        });
+
+
+        $('rotation-speed').addEventListener('input', () => {
+            updateRotationSpeedLabel();
+            uiSettings.rotationSpeed = Number($('rotation-speed').value);
+            saveSettings();
+        });
+
+
+        $('session-minutes').addEventListener('change', event => {
+
+            let value = Number(event.target.value);
+
+            if (!Number.isFinite(value)) value = 2;
+
+            value = Math.max(1, Math.min(60, Math.round(value)));
+
+            event.target.value = value;
+            uiSettings.sessionMinutes = value;
+            saveSettings();
+        });
+
+
+        $('btn-reset-settings').addEventListener('click', () => {
+            const keepMode = uiSettings.mode;
+            uiSettings = defaultSettings();
+            uiSettings.mode = keepMode;
+            saveSettings();
+            applySettingsToControls();
+            if (sessionActive) spawnRound();
+        });
+
+
+        buildGroupGrid('cap-grid', ALL_CAPS, 'cap');
+        buildGroupGrid('sub-grid', ALL_SUBS, 'sub');
 
 
         // ============================================================
@@ -7135,6 +8139,23 @@
                 'has-buttons',
                 currentMode === 'rs'
             );
+
+
+            /*
+             * The group picker only drives the molecule generators, so it
+             * is shown as inactive rather than silently doing nothing in
+             * block mode.
+             */
+
+            document
+                .getElementById('chemistry-section')
+                .classList.toggle(
+                    'is-disabled',
+                    currentMode === 'blocks'
+                );
+
+
+            updateManualLevelUi();
         }
 
 
@@ -7161,6 +8182,10 @@
 
 
                             currentMode = next;
+
+                            uiSettings.mode = next;
+
+                            saveSettings();
 
 
                             applyModeToUi();
@@ -7249,6 +8274,8 @@
         // ============================================================
         // INITIAL STATE
         // ============================================================
+
+        applySettingsToControls();
 
         applyModeToUi();
 
