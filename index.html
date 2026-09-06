@@ -1578,6 +1578,25 @@
             </div>
 
 
+            <div class="settings-section">
+
+                <h3>Record</h3>
+
+                <p
+                    class="settings-hint"
+                    id="record-summary"
+                ></p>
+
+                <button
+                    class="btn btn-secondary"
+                    id="btn-export-record"
+                >
+                    Export for archive
+                </button>
+
+            </div>
+
+
             <div class="settings-actions">
 
                 <button
@@ -7806,7 +7825,9 @@
         }
 
         settingsToggle.addEventListener('click', () => {
-            setSettingsOpen(!settingsPanel.classList.contains('is-open'));
+            const opening = !settingsPanel.classList.contains('is-open');
+            if (opening) updateRecordSummary();
+            setSettingsOpen(opening);
         });
 
         /* Click anywhere else to dismiss, but not on the canvas drag that
@@ -8065,6 +8086,111 @@
         });
 
 
+        // ------------------------------------------------------------
+        // EXPORT TO THE ARCHIVE
+        //
+        // Until now the only copy of this record was the browser's own
+        // storage, reachable solely by scraping the Firefox profile off
+        // one machine. That fails on a second browser, on a phone, and
+        // on the day site data is cleared — which is the exact loss the
+        // archive exists to prevent.
+        //
+        // The file written here is a storage snapshot: the archive
+        // recognises sources by SHAPE rather than filename, and its
+        // rotation adapter looks for this key holding the raw JSON
+        // string. Deliberately not a friendlier bespoke format — the
+        // adapter already exists and already reads this, so a new shape
+        // would only be a second thing to keep in step.
+        // ------------------------------------------------------------
+
+        function recordCounts() {
+
+            const history = Array.isArray(progress.history)
+                ? progress.history
+                : [];
+
+            let seconds = 0;
+
+            history.forEach(h => {
+                seconds += Math.max(0, Number(h && h.seconds) || 0);
+            });
+
+            return { sessions: history.length, seconds };
+        }
+
+
+        function updateRecordSummary() {
+
+            const counts = recordCounts();
+
+            const summary = $('record-summary');
+            const button = $('btn-export-record');
+
+            if (!counts.sessions) {
+
+                summary.textContent =
+                    'Nothing recorded yet. Finish a session and it lands here.';
+
+                button.disabled = true;
+
+                return;
+            }
+
+            const minutes = Math.round(counts.seconds / 60);
+
+            summary.textContent =
+                `${counts.sessions} session${counts.sessions === 1 ? '' : 's'}` +
+                `, ${minutes} min. Drop the file on the training archive.`;
+
+            button.disabled = false;
+        }
+
+
+        function exportRecord() {
+
+            const counts = recordCounts();
+
+            if (!counts.sessions) return;
+
+            /*
+             * Serialised from the live object rather than read back out
+             * of storage, so an export still works when storage is
+             * unavailable — which is one of the situations you would
+             * most want a copy.
+             */
+
+            const payload = {
+                '__origin': location.origin,
+                [PROGRESS_KEY]: JSON.stringify(progress)
+            };
+
+            const stamp =
+                new Date().toISOString().slice(0, 10);
+
+            const blob =
+                new Blob(
+                    [JSON.stringify(payload, null, 2)],
+                    { type: 'application/json' }
+                );
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = `rotation-${stamp}.json`;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        }
+
+
+        $('btn-export-record').addEventListener('click', exportRecord);
+
+
         buildGroupGrid('cap-grid', ALL_CAPS, 'cap');
         buildGroupGrid('sub-grid', ALL_SUBS, 'sub');
 
@@ -8276,6 +8402,8 @@
         // ============================================================
 
         applySettingsToControls();
+
+        updateRecordSummary();
 
         applyModeToUi();
 
