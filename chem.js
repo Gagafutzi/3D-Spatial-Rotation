@@ -1044,11 +1044,68 @@ function randomConstitution(palette, symmetric, rng, pool) {
 
 
 /*
- * Build one round: six entries, exactly two of which are the same
- * compound.
+ * Round size. Two is the special case: with only two molecules on the
+ * board there is nothing to pick between, so the question stops being
+ * "which two match" and becomes "do these two match at all".
  */
 
-function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
+const MIN_ROUND_SIZE = 2;
+
+const MAX_ROUND_SIZE = 6;
+
+
+function clampRoundSize(count) {
+
+    const n = Math.round(Number(count));
+
+    if (!Number.isFinite(n)) {
+        return MAX_ROUND_SIZE;
+    }
+
+    return Math.max(
+        MIN_ROUND_SIZE,
+        Math.min(MAX_ROUND_SIZE, n)
+    );
+}
+
+
+/*
+ * Order the rest of the family so the enantiomer comes first. Full
+ * rounds have room for every stereoisomer, but a three- or four-slot
+ * round has to choose, and the mirror image is the distractor the
+ * drill is actually about.
+ */
+
+function orderedKin(target, family, targetKey, rng) {
+
+    const kin = shuffle(
+        family.filter(s => canonicalKey(s) !== targetKey),
+        rng
+    );
+
+    const mirror = kin.filter(
+        s => relationship(target, s) === 'enantiomer'
+    );
+
+    return mirror.concat(
+        kin.filter(s => relationship(target, s) !== 'enantiomer')
+    );
+}
+
+
+/*
+ * Build one round: `count` entries, exactly two of which are the same
+ * compound. At count 2 the round is a true/false pair instead — see
+ * generateMoleculePair.
+ */
+
+function generateMoleculeRound(level, rng = Math.random, groupPool = null, count = MAX_ROUND_SIZE) {
+
+    const size = clampRoundSize(count);
+
+    if (size === 2) {
+        return generateMoleculePair(level, rng, groupPool);
+    }
 
     const tier = moleculeTier(level);
 
@@ -1074,23 +1131,21 @@ function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
         const target = pick(family, rng);
         const targetKey = canonicalKey(target);
 
-        const others = family.filter(
-            s => canonicalKey(s) !== targetKey
-        );
-
         const entries = [
             { spec: target, role: 'target' },
             { spec: target, role: 'target' }
         ];
 
-        others.forEach(
-            spec => {
-                entries.push({
-                    spec,
-                    role: relationship(target, spec)
-                });
-            }
-        );
+        orderedKin(target, family, targetKey, rng)
+            .slice(0, size - entries.length)
+            .forEach(
+                spec => {
+                    entries.push({
+                        spec,
+                        role: relationship(target, spec)
+                    });
+                }
+            );
 
         /*
          * Top up from a second constitution. Symmetric
@@ -1100,7 +1155,7 @@ function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
 
         let guard = 0;
 
-        while (entries.length < 6 && guard++ < 60) {
+        while (entries.length < size && guard++ < 60) {
 
             const secondary = randomConstitution(
                 tier.palette,
@@ -1132,7 +1187,7 @@ function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
                 rng
             );
 
-            pool.slice(0, 6 - entries.length).forEach(
+            pool.slice(0, size - entries.length).forEach(
                 spec => {
                     entries.push({
                         spec,
@@ -1142,7 +1197,7 @@ function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
             );
         }
 
-        if (entries.length !== 6) {
+        if (entries.length !== size) {
             continue;
         }
 
@@ -1175,6 +1230,150 @@ function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
             target,
             targetKey,
             tier,
+            size,
+            verdict: null,
+            entries: shuffle(built, rng)
+        };
+    }
+
+    return null;
+}
+
+
+/*
+ * The distractor for a two-molecule round. A stereoisomer of the same
+ * constitution is the whole point of the drill, so it is the usual
+ * choice; a different constitution turns up occasionally so the eye
+ * cannot settle for reading the group list.
+ */
+
+function pairDistractor(target, targetKey, family, tier, rng, groupPool) {
+
+    const kin = family.filter(
+        s => canonicalKey(s) !== targetKey
+    );
+
+    if (kin.length && rng() < 0.8) {
+        return pick(kin, rng);
+    }
+
+    for (let attempt = 0; attempt < 40; attempt++) {
+
+        const secondary = randomConstitution(
+            tier.palette,
+            rng() < 0.5 ? tier.symmetric : false,
+            rng,
+            groupPool
+        );
+
+        if (!secondary) {
+            continue;
+        }
+
+        const probe = {
+            caps: secondary.caps,
+            subs: secondary.subs,
+            config: ['R', 'R']
+        };
+
+        if (constitutionKey(probe) === constitutionKey(target)) {
+            continue;
+        }
+
+        return pick(stereoisomersOf(probe), rng);
+    }
+
+    return kin.length ? pick(kin, rng) : null;
+}
+
+
+/*
+ * Two molecules, answer is yes or no. `verdict` is the truth: true
+ * means the pair really is one compound shown twice.
+ *
+ * Note that a true pair is two independent renderings of the same
+ * spec, seeded with different orientations, so "they look different"
+ * is never evidence.
+ */
+
+function generateMoleculePair(level, rng = Math.random, groupPool = null) {
+
+    const tier = moleculeTier(level);
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+
+        const primary = randomConstitution(
+            tier.palette,
+            tier.symmetric,
+            rng,
+            groupPool
+        );
+
+        if (!primary) {
+            continue;
+        }
+
+        const family = stereoisomersOf({
+            caps: primary.caps,
+            subs: primary.subs,
+            config: ['R', 'R']
+        });
+
+        const target = pick(family, rng);
+        const targetKey = canonicalKey(target);
+
+        const verdict = rng() < 0.5;
+
+        const partner = verdict
+            ? target
+            : pairDistractor(target, targetKey, family, tier, rng, groupPool);
+
+        if (!partner) {
+            continue;
+        }
+
+        const entries = [
+            {
+                spec: target,
+                role: 'target'
+            },
+            {
+                spec: partner,
+                role: verdict ? 'target' : relationship(target, partner)
+            }
+        ];
+
+        /*
+         * The same hard invariant as the larger rounds, read the other
+         * way round: a "different" pair has to really be different, or
+         * the stated answer is a lie.
+         */
+
+        const matching = entries.filter(
+            e => canonicalKey(e.spec) === targetKey
+        ).length;
+
+        if (matching !== (verdict ? 2 : 1)) {
+            continue;
+        }
+
+        const built = entries.map(
+            entry => ({
+                ...entry,
+                molecule: buildMolecule(entry.spec)
+            })
+        );
+
+        if (built.some(e => !e.molecule)) {
+            continue;
+        }
+
+        return {
+            target,
+            targetKey,
+            tier,
+            size: 2,
+            verdict,
             entries: shuffle(built, rng)
         };
     }
@@ -1247,3 +1446,7 @@ module.exports.PALETTES = PALETTES;
 module.exports.resolvePool = resolvePool;
 module.exports.randomConstitution = randomConstitution;
 module.exports.BACKBONE_STYLE = BACKBONE_STYLE;
+module.exports.generateMoleculePair = generateMoleculePair;
+module.exports.clampRoundSize = clampRoundSize;
+module.exports.MIN_ROUND_SIZE = MIN_ROUND_SIZE;
+module.exports.MAX_ROUND_SIZE = MAX_ROUND_SIZE;
