@@ -3,7 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1426">
+    <meta name="mobile-web-app-capable" content="yes">
 
     <title>Advanced Dynamic Spatial Rotation Trainer</title>
 
@@ -26,6 +28,17 @@
 
     <style>
         :root {
+            /* Notches, rounded corners and the home-bar strip. The
+               fallbacks keep every calc() below valid on browsers that
+               do not implement env(). */
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+
+            /* How far the bottom-anchored controls sit above the edge. */
+            --dock-gap: calc(16px + var(--safe-bottom));
+
             --bg-color: #070b14;
             --panel-bg: #131b2e;
             --text-color: #f8fafc;
@@ -53,6 +66,21 @@
             user-select: none;
         }
 
+        /* Nothing here is a document: no pull-to-refresh, no rubber
+           banding past the edges, no grey flash under a tap. */
+        html {
+            overscroll-behavior: none;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        button,
+        select,
+        label,
+        .group-chip {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
         html,
         body {
             width: 100%;
@@ -62,6 +90,7 @@
         body {
             margin: 0;
             padding: 0;
+            overscroll-behavior: none;
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family:
@@ -87,7 +116,11 @@
            ============================================================ */
 
         header {
-            padding: 12px 24px;
+            padding:
+                calc(12px + var(--safe-top))
+                calc(24px + var(--safe-right))
+                12px
+                calc(24px + var(--safe-left));
 
             background:
                 linear-gradient(
@@ -108,7 +141,10 @@
 
             z-index: 10;
 
-            height: 64px;
+            /* Was a fixed 64px, which a notch inset would eat into. */
+            height: auto;
+
+            min-height: calc(64px + var(--safe-top));
 
             flex-shrink: 0;
             position: relative; /* Added for absolute centering of community link */
@@ -380,15 +416,18 @@
             width: 100%;
         }
 
-        .btn:hover {
-            background:
-                var(--accent-hover);
+        @media (hover: hover) {
 
-            transform:
-                translateY(-1px);
+            .btn:hover {
+                background:
+                    var(--accent-hover);
 
-            box-shadow:
-                0 6px 18px rgba(37, 99, 235, 0.4);
+                transform:
+                    translateY(-1px);
+
+                box-shadow:
+                    0 6px 18px rgba(37, 99, 235, 0.4);
+            }
         }
 
         .btn:active {
@@ -474,8 +513,11 @@
                 color 0.18s ease;
         }
 
-        .mode-btn:hover {
-            color: var(--text-color);
+        @media (hover: hover) {
+
+            .mode-btn:hover {
+                color: var(--text-color);
+            }
         }
 
         .mode-btn.is-active {
@@ -522,6 +564,12 @@
             color: var(--text-color);
         }
 
+        .instruction-hint {
+            margin-left: 12px;
+
+            opacity: 0.75;
+        }
+
         /* ============================================================
            R / S ANSWER PANEL
            ============================================================ */
@@ -531,7 +579,7 @@
 
             left: 50%;
 
-            bottom: 84px;
+            bottom: calc(68px + var(--dock-gap));
 
             transform:
                 translateX(-50%);
@@ -554,13 +602,18 @@
             display: flex;
         }
 
-        .rs-buttons {
+        .rs-buttons,
+        .tf-buttons {
             display: flex;
 
             gap: 12px;
         }
 
         .rs-panel:not(.has-buttons) .rs-buttons {
+            display: none;
+        }
+
+        .rs-panel:not(.has-tf) .tf-buttons {
             display: none;
         }
 
@@ -597,13 +650,37 @@
                 rgba(0, 0, 0, 0.35);
         }
 
-        .rs-btn:hover:not(:disabled) {
+        .tf-btn {
+            width: auto;
+
+            min-width: 132px;
+
+            font-family: inherit;
+
+            font-size: 16px;
+
+            letter-spacing: 0.2px;
+        }
+
+        /* A touch device has no hover state to leave, so a tapped
+           button would otherwise keep the highlight until the next
+           tap landed elsewhere. */
+        @media (hover: hover) {
+
+            .rs-btn:hover:not(:disabled) {
+                background: var(--accent);
+
+                border-color: var(--accent);
+
+                transform:
+                    translateY(-1px);
+            }
+        }
+
+        .rs-btn:active:not(:disabled) {
             background: var(--accent);
 
             border-color: var(--accent);
-
-            transform:
-                translateY(-1px);
         }
 
         .rs-btn:disabled {
@@ -686,8 +763,8 @@
         .settings-toggle {
             position: absolute;
 
-            bottom: 16px;
-            right: 16px;
+            bottom: var(--dock-gap);
+            right: calc(16px + var(--safe-right));
 
             z-index: 7;
 
@@ -706,12 +783,15 @@
                 1px solid var(--card-border);
         }
 
-        .settings-toggle:hover {
-            background: var(--panel-bg);
+        @media (hover: hover) {
 
-            color: var(--text-color);
+            .settings-toggle:hover {
+                background: var(--panel-bg);
 
-            transform: none;
+                color: var(--text-color);
+
+                transform: none;
+            }
         }
 
         .settings-toggle.is-open {
@@ -727,8 +807,8 @@
 
             backdrop-filter: blur(14px);
 
-            bottom: 60px;
-            right: 16px;
+            bottom: calc(44px + var(--dock-gap));
+            right: calc(16px + var(--safe-right));
 
             display: none;
 
@@ -911,10 +991,13 @@
                 1px solid var(--card-border);
         }
 
-        .btn-secondary:hover {
-            background: #0b1220;
+        @media (hover: hover) {
 
-            color: var(--text-color);
+            .btn-secondary:hover {
+                background: #0b1220;
+
+                color: var(--text-color);
+            }
         }
 
         .settings-panel label {
@@ -1014,8 +1097,11 @@
             z-index: 20;
         }
 
-        .community-link:hover {
-            color: var(--text-color);
+        @media (hover: hover) {
+
+            .community-link:hover {
+                color: var(--text-color);
+            }
         }
 
         .session-button {
@@ -1026,7 +1112,71 @@
             padding: 9px 16px;
 
             font-size: 12px;
+
+            white-space: nowrap;
         }
+
+        /* ============================================================
+           TOUCH
+
+           Applies by input device rather than by width: a small laptop
+           window does not need 48px hit targets, and a large tablet
+           does.
+           ============================================================ */
+
+        @media (pointer: coarse) {
+
+            .btn,
+            .mode-btn,
+            .rs-btn,
+            .settings-toggle {
+                min-height: 44px;
+            }
+
+            .mode-btn {
+                padding: 10px 18px;
+            }
+
+            .group-chip {
+                padding: 9px 13px;
+
+                font-size: 12px;
+            }
+
+            .settings-panel input[type="checkbox"] {
+                width: 20px;
+
+                height: 20px;
+
+                flex-shrink: 0;
+            }
+
+            .settings-row {
+                min-height: 34px;
+
+                margin-bottom: 13px;
+            }
+
+            /* A range slider is hard enough to hit with a fingertip
+               without it also being 110px wide. */
+            .settings-control input[type="range"] {
+                height: 28px;
+            }
+
+            /* Safari zooms the page when a control smaller than 16px
+               takes focus, and never zooms back out. */
+            .settings-control select,
+            .settings-control input[type="number"] {
+                font-size: 16px;
+
+                padding: 7px 8px;
+            }
+
+            .settings-control input[type="number"] {
+                width: 68px;
+            }
+        }
+
 
         /* ============================================================
            MOBILE
@@ -1035,25 +1185,33 @@
         @media (max-width: 900px) {
 
             header {
-                padding: 10px 14px;
+                padding:
+                    calc(10px + var(--safe-top))
+                    calc(14px + var(--safe-right))
+                    10px
+                    calc(14px + var(--safe-left));
 
-                height: auto;
-
-                min-height: 64px;
+                min-height: calc(56px + var(--safe-top));
 
                 gap: 10px;
             }
 
             h1 {
                 font-size: 16px;
+
+                min-width: 0;
+
+                overflow: hidden;
+
+                text-overflow: ellipsis;
             }
 
             .dashboard {
-                gap: 10px;
-
-                flex-wrap: wrap;
+                gap: 14px;
 
                 justify-content: flex-end;
+
+                flex-shrink: 1;
             }
 
             .community-link {
@@ -1064,59 +1222,63 @@
                 font-size: 16px;
             }
 
-            .instruction-bar {
-                max-width:
-                    calc(100% - 24px);
+            .top-hud {
+                top: 22px;
 
-                padding: 8px 12px;
+                gap: 7px;
 
-                font-size: 11px;
+                max-width: calc(100% - 16px);
             }
 
-            .mode-btn {
-                padding: 6px 12px;
+            .instruction-bar {
+                max-width: 100%;
 
-                font-size: 11px;
+                padding: 8px 14px;
+
+                font-size: 11.5px;
             }
 
             .rs-btn {
-                width: 88px;
+                width: 92px;
 
-                padding: 11px 0;
+                padding: 12px 0;
 
-                font-size: 18px;
+                font-size: 19px;
+            }
+
+            .tf-btn {
+                min-width: 120px;
+
+                font-size: 15px;
             }
 
             .settings-toggle {
-                bottom: 10px;
-                right: 10px;
-            }
+                bottom: var(--dock-gap);
 
-            .settings-panel {
-                left: 10px;
-                right: 10px;
-
-                bottom: 54px;
-
-                width: auto;
-
-                max-height:
-                    calc(100dvh - 200px);
+                right: calc(12px + var(--safe-right));
             }
 
             .rs-panel {
-                bottom: 62px;
-            }
+                bottom: calc(60px + var(--dock-gap));
 
-            .settings-control input[type="range"] {
-                width: 85px;
+                width: min(600px, calc(100% - 20px));
             }
         }
 
+
+        /* ============================================================
+           PHONE
+
+           The settings panel stops being a popover anchored to its
+           button and becomes a bottom sheet: at this width the popover
+           was already spanning the screen, but it kept a popover's
+           small hit targets and its awkward scroll region.
+           ============================================================ */
+
         @media (max-width: 600px) {
 
-            header {
-                align-items: flex-start;
+            h1 {
+                font-size: 14px;
             }
 
             h1 span {
@@ -1124,34 +1286,269 @@
             }
 
             .dashboard {
-                gap: 7px;
+                gap: 11px;
             }
 
-            .stat-box:nth-last-child(-n+2) {
+            .stat-value {
+                font-size: 15px;
+            }
+
+            .stat-label {
+                font-size: 8.5px;
+
+                letter-spacing: 0.3px;
+            }
+
+            /* The label must not wrap, so the button cannot be
+               allowed to shrink past it either — flexbox would
+               otherwise squeeze it and let the text spill over the
+               stats beside it. */
+            .session-button {
+                min-width: 0;
+
+                flex-shrink: 0;
+
+                padding: 9px 12px;
+
+                font-size: 11.5px;
+            }
+
+            /* The task is worth reading on a phone, where it is the
+               only place the rules appear once the overlay is gone. So
+               it wraps instead of being cut off with an ellipsis, and
+               the gesture hint drops: the gestures are discoverable by
+               touching the thing. */
+            .instruction-bar {
+                white-space: normal;
+
+                text-overflow: clip;
+
+                line-height: 1.45;
+
+                text-align: center;
+            }
+
+            .instruction-hint {
                 display: none;
             }
 
-            .session-button {
-                min-width: 96px;
+            .settings-toggle {
+                bottom: var(--dock-gap);
 
-                padding:
-                    8px 10px;
+                left: calc(12px + var(--safe-left));
+
+                right: calc(12px + var(--safe-right));
+
+                width: auto;
             }
 
             .settings-panel {
-                font-size: 10px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+
+                width: auto;
+
+                max-height: 72dvh;
+
+                padding:
+                    4px
+                    calc(16px + var(--safe-right))
+                    calc(14px + var(--safe-bottom))
+                    calc(16px + var(--safe-left));
+
+                border-radius: 16px 16px 0 0;
+
+                border-bottom: none;
+
+                font-size: 12px;
+
+                /* Keep a flick inside the sheet from scrolling the
+                   page behind it once the list hits its end. */
+                overscroll-behavior: contain;
+
+                -webkit-overflow-scrolling: touch;
             }
 
-            .settings-control input[type="number"] {
-                width: 50px;
+            /* The sheet covers the toggle, so it needs its own way out. */
+            .settings-panel .settings-actions {
+                position: sticky;
+
+                bottom: calc(-14px - var(--safe-bottom));
+
+                background: var(--glass-strong);
+
+                padding-bottom: 12px;
+
+                backdrop-filter: blur(14px);
+            }
+
+            .rs-panel {
+                bottom: calc(58px + var(--dock-gap));
+            }
+
+            .rs-buttons,
+            .tf-buttons {
+                gap: 10px;
+
+                width: 100%;
+
+                justify-content: center;
+            }
+
+            .tf-btn {
+                flex: 1 1 0;
+
+                min-width: 0;
+
+                max-width: 190px;
+            }
+
+            .rs-feedback {
+                font-size: 11.5px;
+
+                padding: 9px 13px;
+            }
+
+            .modal {
+                padding: 24px 20px;
+
+                border-radius: 16px;
+            }
+
+            .modal h2 {
+                font-size: 19px;
+            }
+
+            .modal p {
+                font-size: 13px;
+
+                margin-bottom: 20px;
             }
         }
 
-        @media (orientation: portrait) and (max-width: 600px) {
+
+        /* The title is the first thing worth losing when the stats and
+           the session button stop fitting beside it. */
+        @media (max-width: 430px) {
+
+            h1 {
+                display: none;
+            }
+
+            header {
+                padding-left: calc(10px + var(--safe-left));
+
+                padding-right: calc(10px + var(--safe-right));
+            }
+
+            .dashboard {
+                width: 100%;
+
+                gap: 8px;
+
+                justify-content: space-between;
+            }
+
+            .stat-value {
+                font-size: 13px;
+            }
+
+            .stat-label {
+                font-size: 8px;
+
+                letter-spacing: 0;
+            }
+        }
+
+
+        /* ============================================================
+           LANDSCAPE PHONE
+
+           Almost no vertical room: the header, the task bar and the
+           answer panel together can leave the scene a few hundred
+           pixels. Everything horizontal-friendly is made shorter
+           rather than narrower.
+           ============================================================ */
+
+        @media (max-height: 500px) and (orientation: landscape) {
+
+            header {
+                min-height: calc(46px + var(--safe-top));
+
+                padding:
+                    calc(5px + var(--safe-top))
+                    calc(12px + var(--safe-right))
+                    5px
+                    calc(12px + var(--safe-left));
+            }
+
+            h1 {
+                font-size: 13px;
+            }
+
+            .stat-value {
+                font-size: 14px;
+            }
+
+            .stat-label {
+                display: none;
+            }
+
+            .top-hud {
+                top: 20px;
+
+                flex-direction: row;
+
+                gap: 8px;
+            }
 
             .instruction-bar {
-                max-width:
-                    calc(100% - 20px);
+                padding: 6px 12px;
+
+                font-size: 10.5px;
+
+                white-space: nowrap;
+
+                text-overflow: ellipsis;
+            }
+
+            .instruction-hint {
+                display: none;
+            }
+
+            .rs-panel {
+                bottom: calc(8px + var(--safe-bottom));
+
+                flex-direction: row;
+
+                align-items: flex-end;
+
+                gap: 10px;
+
+                width: auto;
+
+                max-width: calc(100% - 140px);
+            }
+
+            .rs-btn {
+                padding: 9px 0;
+
+                min-height: 38px;
+
+                font-size: 16px;
+            }
+
+            .settings-panel {
+                max-height: calc(100dvh - 70px);
+            }
+        }
+
+
+        @media (orientation: portrait) and (max-width: 600px) {
+
+            .top-hud {
+                max-width: calc(100% - 14px);
             }
         }
     </style>
@@ -1352,6 +1749,27 @@
 
             </div>
 
+            <!-- Two shapes on the board means there is nothing to pick
+                 between, so the question becomes a verdict. -->
+
+            <div class="tf-buttons">
+
+                <button
+                    class="rs-btn tf-btn"
+                    data-verdict="same"
+                >
+                    Same
+                </button>
+
+                <button
+                    class="rs-btn tf-btn"
+                    data-verdict="different"
+                >
+                    Different
+                </button>
+
+            </div>
+
             <div
                 class="rs-feedback"
                 id="rs-feedback"
@@ -1394,6 +1812,7 @@
                         max="60"
                         value="2"
                         step="1"
+                        inputmode="numeric"
                         aria-label="Session duration in minutes"
                     >
 
@@ -1477,6 +1896,38 @@
                 >
                     Turn adaptive off to pick a level and hold it.
                 </p>
+
+            </div>
+
+
+            <div
+                class="settings-section"
+                id="board-section"
+            >
+
+                <h3>Board</h3>
+
+                <div class="settings-control settings-row">
+
+                    <span>Shapes on screen</span>
+
+                    <select
+                        id="shape-count"
+                        aria-label="How many shapes appear each trial"
+                    >
+                        <option value="6">6</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2 — true / false</option>
+                    </select>
+
+                </div>
+
+                <p
+                    class="settings-hint"
+                    id="shape-count-hint"
+                ></p>
 
             </div>
 
@@ -1862,6 +2313,553 @@
         };
 
 
+        /*
+         * The block core is wrapped rather than spliced in flat: it shares
+         * helper names with the stereochemistry core below, and two top
+         * level `function shuffle` declarations in one module is a syntax
+         * error. Both regions are generated by sync-cores.js.
+         */
+
+        const Blocks = (function () {
+
+        /* >>> begin blocks.js <<< */
+        /* ================================================================
+         * BLOCK SHAPE CORE
+         *
+         * This is the reference copy and the one the tests run against:
+         *
+         *     node blocks.test.js    rotation canonicalisation, round invariants
+         *
+         * The same code is embedded verbatim inside index.html
+         * (minus the module.exports block),
+         * because the trainer ships as a single self-contained file. Change
+         * this copy first, re-run the suite, then run:
+         *
+         *     node sync-cores.js
+         *
+         * Pure logic, no Three.js.
+         *
+         * A "shape" here is a polycube: a set of unit cells on the integer
+         * lattice, grown as a self-avoiding walk. Two shapes are the same
+         * answer when one can be rotated onto the other, which is a stricter
+         * test than comparing the walks that produced them — the same solid
+         * can be reached by different paths, and a path's mirror image is
+         * sometimes rotationally identical to the path itself.
+         *
+         * That last case is why this file exists. Before it, a round could
+         * present a shape and its mirror as a "distinct" pair when the shape
+         * happened to be achiral, which makes the stated answer wrong.
+         * ================================================================ */
+
+
+        const MIN_ROUND_SIZE = 2;
+
+        const MAX_ROUND_SIZE = 6;
+
+
+        function clampRoundSize(count) {
+
+            const n = Math.round(Number(count));
+
+            if (!Number.isFinite(n)) {
+                return MAX_ROUND_SIZE;
+            }
+
+            return Math.max(
+                MIN_ROUND_SIZE,
+                Math.min(MAX_ROUND_SIZE, n)
+            );
+        }
+
+
+        /* ================================================================
+         * ROTATION GROUP OF THE CUBE
+         * ================================================================ */
+
+        /*
+         * Each rotation is an axis permutation plus a sign per axis. Of the
+         * 48 such maps, the 24 with determinant +1 are the rotations; the
+         * other 24 include a reflection and would make mirror images compare
+         * equal, which is exactly what the drill is testing.
+         */
+
+        function permutationSign(perm) {
+
+            let sign = 1;
+
+            for (let i = 0; i < perm.length; i++) {
+                for (let j = i + 1; j < perm.length; j++) {
+                    if (perm[i] > perm[j]) {
+                        sign = -sign;
+                    }
+                }
+            }
+
+            return sign;
+        }
+
+
+        function buildRotations() {
+
+            const perms = [
+                [0, 1, 2],
+                [0, 2, 1],
+                [1, 0, 2],
+                [1, 2, 0],
+                [2, 0, 1],
+                [2, 1, 0]
+            ];
+
+            const signs = [
+                [1, 1, 1],
+                [1, 1, -1],
+                [1, -1, 1],
+                [1, -1, -1],
+                [-1, 1, 1],
+                [-1, 1, -1],
+                [-1, -1, 1],
+                [-1, -1, -1]
+            ];
+
+            const out = [];
+
+            perms.forEach(
+                perm => {
+                    signs.forEach(
+                        sign => {
+
+                            const det =
+                                permutationSign(perm) *
+                                sign[0] * sign[1] * sign[2];
+
+                            if (det === 1) {
+                                out.push({ perm, sign });
+                            }
+                        }
+                    );
+                }
+            );
+
+            return out;
+        }
+
+
+        const ROTATIONS = buildRotations();
+
+
+        /*
+         * One rotation, then a translation back to the origin corner, then a
+         * sorted listing of the cells. The smallest such listing over all 24
+         * rotations is a canonical name for the solid: two shapes are the
+         * same answer if and only if their keys match.
+         *
+         * The listing is sorted as strings rather than numerically. Any fixed
+         * order gives a canonical form, and the comparison between rotations
+         * uses the same order, so nothing depends on which one it is.
+         */
+
+        function canonicalPathKey(path) {
+
+            let best = null;
+
+            for (let r = 0; r < ROTATIONS.length; r++) {
+
+                const rotation = ROTATIONS[r];
+
+                const moved = new Array(path.length);
+
+                let minX = Infinity;
+                let minY = Infinity;
+                let minZ = Infinity;
+
+                for (let i = 0; i < path.length; i++) {
+
+                    const cell = path[i];
+
+                    const x = rotation.sign[0] * cell[rotation.perm[0]];
+                    const y = rotation.sign[1] * cell[rotation.perm[1]];
+                    const z = rotation.sign[2] * cell[rotation.perm[2]];
+
+                    moved[i] = [x, y, z];
+
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (z < minZ) minZ = z;
+                }
+
+                const key = moved
+                    .map(
+                        cell =>
+                            (cell[0] - minX) + ',' +
+                            (cell[1] - minY) + ',' +
+                            (cell[2] - minZ)
+                    )
+                    .sort()
+                    .join(';');
+
+                if (best === null || key < best) {
+                    best = key;
+                }
+            }
+
+            return best;
+        }
+
+
+        function sameUnderRotation(a, b) {
+            return canonicalPathKey(a) === canonicalPathKey(b);
+        }
+
+
+        function mirrorPath(path) {
+            return path.map(
+                cell => [-cell[0], cell[1], cell[2]]
+            );
+        }
+
+
+        /* A shape whose mirror image cannot be rotated onto it. Only a chiral
+           shape makes an honest "these two are different" distractor. */
+        function isChiralPath(path) {
+            return !sameUnderRotation(path, mirrorPath(path));
+        }
+
+
+        /* ================================================================
+         * PATH GENERATION
+         * ================================================================ */
+
+        const AXES = [
+            [1, 0, 0],
+            [-1, 0, 0],
+            [0, 1, 0],
+            [0, -1, 0],
+            [0, 0, 1],
+            [0, 0, -1]
+        ];
+
+
+        function generateComplexPath(numBlocks, rng = Math.random) {
+
+            const positions = [
+                [0, 0, 0]
+            ];
+
+            let currentPos = [0, 0, 0];
+
+            let currentDir = AXES[Math.floor(rng() * AXES.length)];
+
+            /* The walk can paint itself into a corner and restart from an
+               earlier cell; the guard stops a fully enclosed shape from
+               spinning forever rather than returning short. */
+            let guard = 0;
+
+            while (positions.length < numBlocks && guard++ < numBlocks * 200) {
+
+                const segLength = Math.floor(rng() * 2) + 1;
+
+                for (
+                    let i = 0;
+                    i < segLength && positions.length < numBlocks;
+                    i++
+                ) {
+
+                    const candidate = [
+                        currentPos[0] + currentDir[0],
+                        currentPos[1] + currentDir[1],
+                        currentPos[2] + currentDir[2]
+                    ];
+
+                    const taken = positions.some(
+                        p =>
+                            p[0] === candidate[0] &&
+                            p[1] === candidate[1] &&
+                            p[2] === candidate[2]
+                    );
+
+                    if (taken) {
+                        break;
+                    }
+
+                    currentPos = candidate;
+
+                    positions.push([...currentPos]);
+                }
+
+                const occupied = new Set(
+                    positions.map(p => p.join(','))
+                );
+
+                const availableDirections = AXES.filter(
+                    a => {
+
+                        const next = [
+                            currentPos[0] + a[0],
+                            currentPos[1] + a[1],
+                            currentPos[2] + a[2]
+                        ];
+
+                        return !occupied.has(next.join(','));
+                    }
+                );
+
+                /* Prefer a turn, so the shapes read as three-dimensional
+                   rather than as long straight rods. */
+                const orthos = availableDirections.filter(
+                    a =>
+                        (
+                            a[0] * currentDir[0] +
+                            a[1] * currentDir[1] +
+                            a[2] * currentDir[2]
+                        ) === 0
+                );
+
+                const candidates = orthos.length
+                    ? orthos
+                    : availableDirections;
+
+                if (!candidates.length) {
+
+                    const restart = positions[
+                        Math.floor(rng() * positions.length)
+                    ];
+
+                    currentPos = [...restart];
+
+                    currentDir = AXES[Math.floor(rng() * AXES.length)];
+
+                    continue;
+                }
+
+                currentDir = candidates[
+                    Math.floor(rng() * candidates.length)
+                ];
+            }
+
+            return positions;
+        }
+
+
+        /* A shape whose mirror image is a genuinely different solid, so the
+           round always has its mirror distractor available. */
+        function generateChiralPath(numBlocks, rng = Math.random) {
+
+            let fallback = null;
+
+            for (let attempt = 0; attempt < 40; attempt++) {
+
+                const path = generateComplexPath(numBlocks, rng);
+
+                if (!fallback) {
+                    fallback = path;
+                }
+
+                if (isChiralPath(path)) {
+                    return path;
+                }
+            }
+
+            /* Three or four blocks can genuinely have no chiral arrangement.
+               The round still works; it just loses the mirror distractor. */
+            return fallback;
+        }
+
+
+        function shuffle(list, rng) {
+
+            const out = list.slice();
+
+            for (let i = out.length - 1; i > 0; i--) {
+
+                const j = Math.floor(rng() * (i + 1));
+
+                const swap = out[i];
+
+                out[i] = out[j];
+
+                out[j] = swap;
+            }
+
+            return out;
+        }
+
+
+        /* ================================================================
+         * ROUND GENERATION
+         * ================================================================ */
+
+        /*
+         * The partner for a two-shape round that the player must call
+         * "different". The mirror image is the distractor worth training
+         * against, but only when the shape is actually chiral.
+         */
+
+        function pairDistractor(target, targetKey, numBlocks, rng) {
+
+            const mirror = mirrorPath(target);
+
+            const mirrorIsDistinct =
+                canonicalPathKey(mirror) !== targetKey;
+
+            if (mirrorIsDistinct && rng() < 0.7) {
+                return { path: mirror, role: 'mirror' };
+            }
+
+            for (let attempt = 0; attempt < 60; attempt++) {
+
+                const other = generateComplexPath(numBlocks, rng);
+
+                if (canonicalPathKey(other) !== targetKey) {
+                    return { path: other, role: 'distinct' };
+                }
+            }
+
+            if (mirrorIsDistinct) {
+                return { path: mirror, role: 'mirror' };
+            }
+
+            return null;
+        }
+
+
+        /*
+         * Build one round of `count` block shapes.
+         *
+         * At three or more, exactly two entries are the same solid and every
+         * other entry is distinct from them and from each other. At two the
+         * round is a true/false pair instead, and `verdict` carries the
+         * answer: true means the two really are one shape shown twice.
+         */
+
+        function generateBlocksRound(numBlocks, rng = Math.random, count = MAX_ROUND_SIZE) {
+
+            const size = clampRoundSize(count);
+
+            for (let attempt = 0; attempt < 60; attempt++) {
+
+                const target = size === 2
+                    ? generateChiralPath(numBlocks, rng)
+                    : generateComplexPath(numBlocks, rng);
+
+                const targetKey = canonicalPathKey(target);
+
+                if (size === 2) {
+
+                    const verdict = rng() < 0.5;
+
+                    if (verdict) {
+
+                        return {
+                            size,
+                            verdict,
+                            targetKey,
+                            entries: [
+                                { path: target, role: 'target' },
+                                { path: target, role: 'target' }
+                            ]
+                        };
+                    }
+
+                    const partner = pairDistractor(
+                        target,
+                        targetKey,
+                        numBlocks,
+                        rng
+                    );
+
+                    if (!partner) {
+                        continue;
+                    }
+
+                    return {
+                        size,
+                        verdict,
+                        targetKey,
+                        entries: shuffle(
+                            [
+                                { path: target, role: 'target' },
+                                { path: partner.path, role: partner.role }
+                            ],
+                            rng
+                        )
+                    };
+                }
+
+                const entries = [
+                    { path: target, role: 'target' },
+                    { path: target, role: 'target' }
+                ];
+
+                const seen = new Set([targetKey]);
+
+                const offer = (path, role) => {
+
+                    if (entries.length >= size) {
+                        return;
+                    }
+
+                    const key = canonicalPathKey(path);
+
+                    if (seen.has(key)) {
+                        return;
+                    }
+
+                    seen.add(key);
+
+                    entries.push({ path, role });
+                };
+
+                /* The target's own mirror goes in first: it is the distractor
+                   the drill is about, and a short round must not drop it. */
+                offer(mirrorPath(target), 'mirror');
+
+                let guard = 0;
+
+                while (entries.length < size && guard++ < 200) {
+
+                    const other = generateComplexPath(numBlocks, rng);
+
+                    offer(other, 'distinct');
+
+                    offer(mirrorPath(other), 'mirror');
+                }
+
+                if (entries.length !== size) {
+                    continue;
+                }
+
+                return {
+                    size,
+                    verdict: null,
+                    targetKey,
+                    entries: shuffle(entries, rng)
+                };
+            }
+
+            return null;
+        }
+
+
+        return {
+            MIN_ROUND_SIZE,
+            MAX_ROUND_SIZE,
+            clampRoundSize,
+            ROTATIONS,
+            canonicalPathKey,
+            sameUnderRotation,
+            mirrorPath,
+            isChiralPath,
+            generateComplexPath,
+            generateChiralPath,
+            generateBlocksRound
+        };
+
+        /* >>> end blocks.js <<< */
+
+        }());
+
+
+        /* >>> begin chem.js <<< */
         /* ================================================================
          * STEREOCHEMISTRY CORE
          *
@@ -2882,11 +3880,68 @@
 
 
         /*
-         * Build one round: six entries, exactly two of which are the same
-         * compound.
+         * Round size. Two is the special case: with only two molecules on the
+         * board there is nothing to pick between, so the question stops being
+         * "which two match" and becomes "do these two match at all".
          */
 
-        function generateMoleculeRound(level, rng = Math.random, groupPool = null) {
+        const MIN_ROUND_SIZE = 2;
+
+        const MAX_ROUND_SIZE = 6;
+
+
+        function clampRoundSize(count) {
+
+            const n = Math.round(Number(count));
+
+            if (!Number.isFinite(n)) {
+                return MAX_ROUND_SIZE;
+            }
+
+            return Math.max(
+                MIN_ROUND_SIZE,
+                Math.min(MAX_ROUND_SIZE, n)
+            );
+        }
+
+
+        /*
+         * Order the rest of the family so the enantiomer comes first. Full
+         * rounds have room for every stereoisomer, but a three- or four-slot
+         * round has to choose, and the mirror image is the distractor the
+         * drill is actually about.
+         */
+
+        function orderedKin(target, family, targetKey, rng) {
+
+            const kin = shuffle(
+                family.filter(s => canonicalKey(s) !== targetKey),
+                rng
+            );
+
+            const mirror = kin.filter(
+                s => relationship(target, s) === 'enantiomer'
+            );
+
+            return mirror.concat(
+                kin.filter(s => relationship(target, s) !== 'enantiomer')
+            );
+        }
+
+
+        /*
+         * Build one round: `count` entries, exactly two of which are the same
+         * compound. At count 2 the round is a true/false pair instead — see
+         * generateMoleculePair.
+         */
+
+        function generateMoleculeRound(level, rng = Math.random, groupPool = null, count = MAX_ROUND_SIZE) {
+
+            const size = clampRoundSize(count);
+
+            if (size === 2) {
+                return generateMoleculePair(level, rng, groupPool);
+            }
 
             const tier = moleculeTier(level);
 
@@ -2912,23 +3967,21 @@
                 const target = pick(family, rng);
                 const targetKey = canonicalKey(target);
 
-                const others = family.filter(
-                    s => canonicalKey(s) !== targetKey
-                );
-
                 const entries = [
                     { spec: target, role: 'target' },
                     { spec: target, role: 'target' }
                 ];
 
-                others.forEach(
-                    spec => {
-                        entries.push({
-                            spec,
-                            role: relationship(target, spec)
-                        });
-                    }
-                );
+                orderedKin(target, family, targetKey, rng)
+                    .slice(0, size - entries.length)
+                    .forEach(
+                        spec => {
+                            entries.push({
+                                spec,
+                                role: relationship(target, spec)
+                            });
+                        }
+                    );
 
                 /*
                  * Top up from a second constitution. Symmetric
@@ -2938,7 +3991,7 @@
 
                 let guard = 0;
 
-                while (entries.length < 6 && guard++ < 60) {
+                while (entries.length < size && guard++ < 60) {
 
                     const secondary = randomConstitution(
                         tier.palette,
@@ -2970,7 +4023,7 @@
                         rng
                     );
 
-                    pool.slice(0, 6 - entries.length).forEach(
+                    pool.slice(0, size - entries.length).forEach(
                         spec => {
                             entries.push({
                                 spec,
@@ -2980,7 +4033,7 @@
                     );
                 }
 
-                if (entries.length !== 6) {
+                if (entries.length !== size) {
                     continue;
                 }
 
@@ -3013,6 +4066,150 @@
                     target,
                     targetKey,
                     tier,
+                    size,
+                    verdict: null,
+                    entries: shuffle(built, rng)
+                };
+            }
+
+            return null;
+        }
+
+
+        /*
+         * The distractor for a two-molecule round. A stereoisomer of the same
+         * constitution is the whole point of the drill, so it is the usual
+         * choice; a different constitution turns up occasionally so the eye
+         * cannot settle for reading the group list.
+         */
+
+        function pairDistractor(target, targetKey, family, tier, rng, groupPool) {
+
+            const kin = family.filter(
+                s => canonicalKey(s) !== targetKey
+            );
+
+            if (kin.length && rng() < 0.8) {
+                return pick(kin, rng);
+            }
+
+            for (let attempt = 0; attempt < 40; attempt++) {
+
+                const secondary = randomConstitution(
+                    tier.palette,
+                    rng() < 0.5 ? tier.symmetric : false,
+                    rng,
+                    groupPool
+                );
+
+                if (!secondary) {
+                    continue;
+                }
+
+                const probe = {
+                    caps: secondary.caps,
+                    subs: secondary.subs,
+                    config: ['R', 'R']
+                };
+
+                if (constitutionKey(probe) === constitutionKey(target)) {
+                    continue;
+                }
+
+                return pick(stereoisomersOf(probe), rng);
+            }
+
+            return kin.length ? pick(kin, rng) : null;
+        }
+
+
+        /*
+         * Two molecules, answer is yes or no. `verdict` is the truth: true
+         * means the pair really is one compound shown twice.
+         *
+         * Note that a true pair is two independent renderings of the same
+         * spec, seeded with different orientations, so "they look different"
+         * is never evidence.
+         */
+
+        function generateMoleculePair(level, rng = Math.random, groupPool = null) {
+
+            const tier = moleculeTier(level);
+
+            for (let attempt = 0; attempt < 60; attempt++) {
+
+                const primary = randomConstitution(
+                    tier.palette,
+                    tier.symmetric,
+                    rng,
+                    groupPool
+                );
+
+                if (!primary) {
+                    continue;
+                }
+
+                const family = stereoisomersOf({
+                    caps: primary.caps,
+                    subs: primary.subs,
+                    config: ['R', 'R']
+                });
+
+                const target = pick(family, rng);
+                const targetKey = canonicalKey(target);
+
+                const verdict = rng() < 0.5;
+
+                const partner = verdict
+                    ? target
+                    : pairDistractor(target, targetKey, family, tier, rng, groupPool);
+
+                if (!partner) {
+                    continue;
+                }
+
+                const entries = [
+                    {
+                        spec: target,
+                        role: 'target'
+                    },
+                    {
+                        spec: partner,
+                        role: verdict ? 'target' : relationship(target, partner)
+                    }
+                ];
+
+                /*
+                 * The same hard invariant as the larger rounds, read the other
+                 * way round: a "different" pair has to really be different, or
+                 * the stated answer is a lie.
+                 */
+
+                const matching = entries.filter(
+                    e => canonicalKey(e.spec) === targetKey
+                ).length;
+
+                if (matching !== (verdict ? 2 : 1)) {
+                    continue;
+                }
+
+                const built = entries.map(
+                    entry => ({
+                        ...entry,
+                        molecule: buildMolecule(entry.spec)
+                    })
+                );
+
+                if (built.some(e => !e.molecule)) {
+                    continue;
+                }
+
+                return {
+                    target,
+                    targetKey,
+                    tier,
+                    size: 2,
+                    verdict,
                     entries: shuffle(built, rng)
                 };
             }
@@ -3075,6 +4272,8 @@
 
             return null;
         }
+
+        /* >>> end chem.js <<< */
 
 
         // ============================================================
@@ -3169,6 +4368,26 @@
             } catch (e) { /* quota or storage off; the session still plays */ }
         }
 
+        /*
+         * Which ladder a session belongs to.
+         *
+         * The two-shape board is a different task from the same mode's
+         * crowded board, not an easier setting of it: the answer is one
+         * of two, so a coin lands half of them, where picking the
+         * matching pair out of six is one chance in fifteen. Scored
+         * against the same ladder, a run of true/false sessions would
+         * walk the recorded level up and then make the six-shape board
+         * start from a number it never earned. They get their own
+         * ladder instead, and the archive sees them as their own track.
+         */
+
+        function progressKey() {
+            return isPairRound()
+                ? `${currentMode}:pair`
+                : currentMode;
+        }
+
+
         /* One below what has been established, floored at zero. */
         function startingLevel(mode) {
             const entry = progress.modes[mode] || blankProgressEntry();
@@ -3248,6 +4467,7 @@
                 sound: true,
                 adaptive: true,
                 manualLevel: 0,
+                shapeCount: 6,
                 rotation: true,
                 rotationSpeed: 100,
                 labels: true,
@@ -3282,6 +4502,11 @@
             if (merged.subs.length < MIN_PICKED) merged.subs = ALL_SUBS.slice();
 
             if (!PROGRESS_MODES.includes(merged.mode)) merged.mode = 'blocks';
+
+            /* Same clamp the generators apply, so a stored board size
+               from another build cannot ask for a round that does not
+               exist. */
+            merged.shapeCount = Blocks.clampRoundSize(merged.shapeCount);
 
             return merged;
         }
@@ -3730,6 +4955,164 @@
 
 
         /*
+         * Both cores clamp their own round size; this is the same
+         * bound for the setting itself, so a stored value from a
+         * later build — or a hand-edited one — cannot ask for a
+         * board the generators will not produce.
+         */
+
+        function clampShapeCount(count) {
+            return Blocks.clampRoundSize(count);
+        }
+
+
+        /*
+         * How to divide `count` shapes into rows. Landscape gets the
+         * wide arrangement and portrait its transpose; four is square
+         * either way.
+         *
+         * `rowSizes` lets a count that does not fill its grid spread
+         * across the rows evenly rather than leaving the last one
+         * short, so five reads as 3 + 2 rather than 3 + 1 + a gap.
+         */
+
+        function gridShape(count, portrait) {
+
+            const wide = {
+                2: { cols: 2, rows: 1 },
+                3: { cols: 3, rows: 1 },
+                4: { cols: 2, rows: 2 },
+                5: { cols: 3, rows: 2 },
+                6: { cols: 3, rows: 2 }
+            }[count] || { cols: 3, rows: 2 };
+
+            const cols = portrait ? wide.rows : wide.cols;
+
+            const rows = portrait ? wide.cols : wide.rows;
+
+            const rowSizes = [];
+
+            let left = count;
+
+            for (let row = 0; row < rows; row++) {
+
+                const size = Math.ceil(left / (rows - row));
+
+                rowSizes.push(size);
+
+                left -= size;
+            }
+
+            return { cols, rows, rowSizes };
+        }
+
+
+        /*
+         * Pixels of the canvas taken by the HUD at the top and by the
+         * answer panel and settings button at the bottom. An element
+         * that is not on screen has no offsetParent and is skipped.
+         */
+
+        function reservedAbove() {
+
+            const hud =
+                document.querySelector('.top-hud');
+
+
+            if (
+                !hud ||
+                !hud.offsetParent
+            ) {
+
+                return 0;
+
+            }
+
+
+            return Math.max(
+                0,
+                hud.getBoundingClientRect().bottom -
+                container.getBoundingClientRect().top
+            );
+        }
+
+
+        function reservedBelow() {
+
+            const bounds =
+                container.getBoundingClientRect();
+
+
+            const panel =
+                document.getElementById('rs-panel');
+
+
+            let highest = bounds.bottom;
+
+
+            [
+                panel,
+                document.getElementById('btn-settings')
+            ].forEach(
+                element => {
+
+                    if (
+                        !element ||
+                        !element.offsetParent
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const rect =
+                        element.getBoundingClientRect();
+
+
+                    if (
+                        rect.height &&
+                        rect.top < highest
+                    ) {
+
+                        highest = rect.top;
+
+                    }
+                }
+            );
+
+
+            let pixels =
+                Math.max(0, bounds.bottom - highest);
+
+
+            /*
+             * The feedback line appears under the buttons once the
+             * trial resolves, growing the panel upwards. Reserve for
+             * it now rather than letting it land on a shape.
+             */
+
+            const feedback =
+                document.getElementById('rs-feedback');
+
+
+            if (
+                panel &&
+                panel.classList.contains('is-active') &&
+                feedback &&
+                !feedback.classList.contains('is-visible')
+            ) {
+
+                pixels += 54;
+
+            }
+
+
+            return pixels;
+        }
+
+
+        /*
          * Calculate the world-space grid based on the current
          * viewport aspect ratio.
          *
@@ -3790,7 +5173,33 @@
 
             /*
              * Safe viewport area.
+             *
+             * The scene shares the viewport with the HUD above it and
+             * the answer panel below, and both of those change size
+             * with the board: on a phone the task bar wraps to two
+             * lines and the verdict buttons run the full width. A
+             * fixed margin that suits a laptop leaves the outer shapes
+             * sitting under them, so the reserved bands are measured
+             * from the elements themselves.
              */
+
+            const worldPerPixel =
+                (halfHeight * 2) / height;
+
+
+            const topReserve =
+                Math.max(
+                    1.0,
+                    reservedAbove() * worldPerPixel + 0.25
+                );
+
+
+            const bottomReserve =
+                Math.max(
+                    1.0,
+                    reservedBelow() * worldPerPixel + 0.25
+                );
+
 
             const safeWidth =
                 Math.max(
@@ -3806,81 +5215,109 @@
                 );
 
 
+            /* What the grid may use, once the HUD and the answer dock
+               have taken their bands. */
+            const gridSafeHeight =
+                Math.max(
+                    2.2,
+                    halfHeight - (topReserve + bottomReserve) / 2
+                );
+
+
             /*
-             * Responsive column spacing.
+             * Unequal bands mean the usable strip is not centred on
+             * the camera, so the whole grid slides to the middle of
+             * what is actually free.
+             */
+
+            const centreY =
+                (bottomReserve - topReserve) / 2;
+
+
+            /*
+             * How the board is divided up.
              *
-             * Portrait screens automatically contract.
+             * A phone held upright has roughly the transposed aspect
+             * ratio of a laptop, so the same row/column split cannot
+             * serve both: three columns of two on a 390px-wide screen
+             * leaves each shape about a centimetre across. The grid
+             * turns on its side instead, and the board size setting
+             * chooses how many cells there are to fill.
              */
 
-            const columnSpread =
-                Math.min(
+            const count =
+                clampShapeCount(uiSettings.shapeCount);
 
-                    9.2,
 
-                    Math.max(
-                        2.25,
-                        safeWidth * 0.72
-                    )
-
+            const shape =
+                gridShape(
+                    count,
+                    camera.aspect < 1
                 );
 
 
             /*
-             * Responsive row spacing.
+             * Cell size. The 1.92 is 2 (the safe area is measured from
+             * the centre out) less a margin, so the outermost shapes
+             * keep clear of the edge once they are drawn at their full
+             * allowance.
              */
 
-            const rowSpread =
+            const cellWidth =
                 Math.min(
-
-                    4.9,
-
+                    11.0,
                     Math.max(
-                        1.9,
-                        safeHeight * 0.48
+                        2.3,
+                        (safeWidth * 1.92) / shape.cols
                     )
-
                 );
 
 
-            gridPositions = [
+            const cellHeight =
+                Math.min(
+                    count <= 3 ? 9.4 : 7.4,
+                    Math.max(
+                        2.0,
+                        (gridSafeHeight * 1.92) / shape.rows
+                    )
+                );
 
-                {
-                    x: -columnSpread,
-                    y: rowSpread,
-                    z: 0
-                },
 
-                {
-                    x: 0,
-                    y: rowSpread,
-                    z: 0
-                },
+            /*
+             * Rows are laid out top to bottom and each is centred on
+             * its own, so a count that does not fill the grid — five
+             * in a three-by-two, say — reads as deliberate rather
+             * than as a hole in the corner.
+             */
 
-                {
-                    x: columnSpread,
-                    y: rowSpread,
-                    z: 0
-                },
+            gridPositions = [];
 
-                {
-                    x: -columnSpread,
-                    y: -rowSpread,
-                    z: 0
-                },
+            shape.rowSizes.forEach(
+                (rowSize, row) => {
 
-                {
-                    x: 0,
-                    y: -rowSpread,
-                    z: 0
-                },
+                    for (let column = 0; column < rowSize; column++) {
 
-                {
-                    x: columnSpread,
-                    y: -rowSpread,
-                    z: 0
+                        gridPositions.push({
+
+                            x:
+                                (
+                                    column -
+                                    (rowSize - 1) / 2
+                                ) * cellWidth,
+
+                            y:
+                                centreY +
+                                (
+                                    (shape.rows - 1) / 2 -
+                                    row
+                                ) * cellHeight,
+
+                            z: 0
+
+                        });
+                    }
                 }
-
-            ];
+            );
 
 
             /*
@@ -3889,31 +5326,33 @@
              * This is especially important on portrait displays
              * because the generated 3D structures themselves can
              * occupy multiple world units.
+             *
+             * The two-shape board is measured differently from the
+             * rest, which is why it can fill so much more of its cell.
+             * A crowded board fits each shape by its longest box
+             * dimension, and the box diagonal a spinning shape sweeps
+             * through is larger than that, so the cell needs slack.
+             * A two-shape board scales by the bounding sphere, which
+             * is that sweep, so the stated diameter is the whole
+             * footprint and almost all of the cell is usable.
              */
 
-            const horizontalCell =
-                (
-                    columnSpread * 2
-                ) / 3;
-
-
-            const verticalCell =
-                rowSpread * 2;
+            const fillsCell = count === 2;
 
 
             responsiveShapeLimit =
                 Math.min(
 
-                    5.6,
+                    fillsCell ? 8.4 : 5.6,
 
                     Math.max(
                         1.7,
-                        horizontalCell * 0.78
+                        cellWidth * (fillsCell ? 0.92 : 0.78)
                     ),
 
                     Math.max(
                         1.7,
-                        verticalCell * 0.70
+                        cellHeight * (fillsCell ? 0.92 : 0.70)
                     )
 
                 );
@@ -4586,16 +6025,36 @@
 
                 label: 'Blocks',
 
-                title: 'Dynamic Pair Matching',
+                /*
+                 * Board size changes the question, not just the
+                 * crowding, so the wording follows it. At two there is
+                 * nothing to choose between and the answer is a
+                 * verdict instead.
+                 */
 
-                blurb:
-                    '6 3D block shapes float and spin in real time. ' +
-                    'Find the two with identical geometry, ignoring ' +
-                    'rotation. Distractors include mirror images.',
+                title: count =>
+                    count === 2
+                        ? 'Same Shape Or Not'
+                        : 'Dynamic Pair Matching',
 
-                task:
-                    '<strong>Task:</strong> Select the 2 shapes that are ' +
-                    '<em>identical under rotation</em>. Watch out for mirrors!',
+                blurb: count =>
+                    count === 2
+                        ? 'Two 3D block shapes float and spin in real ' +
+                          'time. Say whether they are the same shape, ' +
+                          'ignoring rotation. Half the time they are ' +
+                          'mirror images, which are not.'
+                        : `${count} 3D block shapes float and spin in ` +
+                          'real time. Find the two with identical ' +
+                          'geometry, ignoring rotation. Distractors ' +
+                          'include mirror images.',
+
+                task: count =>
+                    count === 2
+                        ? '<strong>Task:</strong> Are these two the ' +
+                          '<em>same shape under rotation</em>?'
+                        : `<strong>Task:</strong> Select the 2 of ${count} ` +
+                          'shapes that are <em>identical under rotation</em>. ' +
+                          'Watch out for mirrors!',
 
                 baseSeconds: 15,
 
@@ -4607,19 +6066,33 @@
 
                 label: 'Molecules',
 
-                title: 'Stereoisomer Matching',
+                title: count =>
+                    count === 2
+                        ? 'Same Compound Or Not'
+                        : 'Stereoisomer Matching',
 
-                blurb:
-                    'Six molecules, each with two stereocentres, spin ' +
-                    'in real time. Exactly two of them are the same ' +
-                    'compound. The rest are its enantiomer, its ' +
-                    'diastereomers, or a different constitution — and ' +
-                    'at higher levels, meso forms that are their own ' +
-                    'mirror image.',
+                blurb: count =>
+                    count === 2
+                        ? 'Two molecules, each with two stereocentres, ' +
+                          'spin in real time. Say whether they are the ' +
+                          'same compound. When they are not, they are ' +
+                          'usually enantiomers or diastereomers of it, ' +
+                          'so the group list alone will not tell you.'
+                        : `${count} molecules, each with two ` +
+                          'stereocentres, spin in real time. Exactly two ' +
+                          'of them are the same compound. The rest are ' +
+                          'its enantiomer, its diastereomers, or a ' +
+                          'different constitution — and at higher ' +
+                          'levels, meso forms that are their own mirror ' +
+                          'image.',
 
-                task:
-                    '<strong>Task:</strong> Select the 2 molecules that are ' +
-                    'the <em>same compound</em>. Mirror images are not!',
+                task: count =>
+                    count === 2
+                        ? '<strong>Task:</strong> Are these two the ' +
+                          '<em>same compound</em>?'
+                        : `<strong>Task:</strong> Select the 2 of ${count} ` +
+                          'molecules that are the <em>same compound</em>. ' +
+                          'Mirror images are not!',
 
                 baseSeconds: 26,
 
@@ -4631,15 +6104,15 @@
 
                 label: 'R / S',
 
-                title: 'Configuration Assignment',
+                title: () => 'Configuration Assignment',
 
-                blurb:
+                blurb: () =>
                     'One molecule, one highlighted stereocentre. Rank ' +
                     'the four ligands by CIP priority, put the lowest ' +
                     'one behind, and read 1 to 3. The answer panel ' +
                     'shows the full priority order after every trial.',
 
-                task:
+                task: () =>
                     '<strong>Task:</strong> Assign <em>R</em> or <em>S</em> ' +
                     'at the highlighted centre.',
 
@@ -4660,223 +6133,13 @@
 
 
         // ============================================================
-        // PATH GENERATION
-        // ============================================================
-
-        function generateComplexPath(
-            numBlocks
-        ) {
-
-            const positions = [
-                [0, 0, 0]
-            ];
-
-
-            let currentPos = [
-                0,
-                0,
-                0
-            ];
-
-
-            const axes = [
-
-                [1, 0, 0],
-                [-1, 0, 0],
-
-                [0, 1, 0],
-                [0, -1, 0],
-
-                [0, 0, 1],
-                [0, 0, -1]
-
-            ];
-
-
-            let currentDir =
-                axes[
-                    Math.floor(
-                        Math.random() *
-                        axes.length
-                    )
-                ];
-
-
-            while (
-                positions.length <
-                numBlocks
-            ) {
-
-                let segLength =
-                    Math.floor(
-                        Math.random() * 2
-                    ) + 1;
-
-
-                for (
-                    let i = 0;
-
-                    i < segLength &&
-                    positions.length <
-                        numBlocks;
-
-                    i++
-                ) {
-
-                    const candidate = [
-
-                        currentPos[0] +
-                            currentDir[0],
-
-                        currentPos[1] +
-                            currentDir[1],
-
-                        currentPos[2] +
-                            currentDir[2]
-
-                    ];
-
-
-                    if (
-                        !positions.some(
-                            p =>
-                                p[0] ===
-                                    candidate[0] &&
-                                p[1] ===
-                                    candidate[1] &&
-                                p[2] ===
-                                    candidate[2]
-                        )
-                    ) {
-
-                        currentPos =
-                            candidate;
-
-
-                        positions.push(
-                            [
-                                ...currentPos
-                            ]
-                        );
-
-                    } else {
-
-                        break;
-
-                    }
-                }
-
-
-                const occupied =
-                    new Set(
-                        positions.map(
-                            p =>
-                                p.join(',')
-                        )
-                    );
-
-
-                const availableDirections =
-                    axes.filter(
-                        a => {
-
-                            const next = [
-
-                                currentPos[0] +
-                                    a[0],
-
-                                currentPos[1] +
-                                    a[1],
-
-                                currentPos[2] +
-                                    a[2]
-
-                            ];
-
-
-                            return !occupied.has(
-                                next.join(',')
-                            );
-
-                        }
-                    );
-
-
-                const orthos =
-                    availableDirections.filter(
-                        a =>
-
-                            (
-                                a[0] *
-                                    currentDir[0] +
-
-                                a[1] *
-                                    currentDir[1] +
-
-                                a[2] *
-                                    currentDir[2]
-
-                            ) === 0
-                    );
-
-
-                const candidates =
-                    orthos.length
-                        ? orthos
-                        : availableDirections;
-
-
-                if (
-                    !candidates.length
-                ) {
-
-                    const restart =
-                        positions[
-                            Math.floor(
-                                Math.random() *
-                                positions.length
-                            )
-                        ];
-
-
-                    currentPos =
-                        [...restart];
-
-
-                    currentDir =
-                        axes[
-                            Math.floor(
-                                Math.random() *
-                                axes.length
-                            )
-                        ];
-
-
-                    continue;
-                }
-
-
-                currentDir =
-                    candidates[
-                        Math.floor(
-                            Math.random() *
-                            candidates.length
-                        )
-                    ];
-            }
-
-
-            return positions;
-        }
-
-
-        // ============================================================
         // SHAPE CREATION
         // ============================================================
 
         function createShapeGroup(
             positions,
-            material
+            material,
+            fit
         ) {
 
             const group =
@@ -4977,6 +6240,31 @@
 
 
             if (
+                fit === 'fill'
+            ) {
+
+                /*
+                 * Two shapes on a phone have room to spare, and the
+                 * difference between a shape and its mirror is exactly
+                 * the sort of detail that disappears at thumbnail
+                 * size. Scale up to the cell rather than only down to
+                 * it, measuring the bounding sphere because the shape
+                 * turns through every orientation as it spins.
+                 */
+
+                const radius =
+                    centeredBox
+                        .getBoundingSphere(
+                            new THREE.Sphere()
+                        )
+                        .radius || 1;
+
+
+                group.scale.setScalar(
+                    responsiveShapeLimit / (radius * 2)
+                );
+
+            } else if (
                 maxDimension >
                 responsiveShapeLimit
             ) {
@@ -5060,6 +6348,16 @@
             return {
 
                 level,
+
+                /*
+                 * R/S asks about a single molecule, so the board size
+                 * setting has nothing to act on there.
+                 */
+
+                shapeCount:
+                    currentMode === 'rs'
+                        ? 1
+                        : clampShapeCount(uiSettings.shapeCount),
 
                 numCubes:
                     Math.min(
@@ -5361,6 +6659,38 @@
         // TIMEOUT
         // ============================================================
 
+        /*
+         * Streaks feed the per-trial clock: three right in a row buys
+         * time back, three wrong grants some. Every way of resolving a
+         * trial goes through here so the four answer paths cannot
+         * drift apart on it.
+         */
+
+        function recordStreak(wasCorrect) {
+
+            if (wasCorrect) {
+
+                consecutiveWins++;
+                consecutiveLosses = 0;
+
+                if (consecutiveWins >= 3) {
+                    timeModifier -= 2;
+                    consecutiveWins = 0;
+                }
+
+                return;
+            }
+
+            consecutiveLosses++;
+            consecutiveWins = 0;
+
+            if (consecutiveLosses >= 3) {
+                timeModifier += 3;
+                consecutiveLosses = 0;
+            }
+        }
+
+
         function handleTrialTimeout() {
 
             if (
@@ -5379,12 +6709,7 @@
 
             totalAttempts++;
 
-            consecutiveLosses++;
-            consecutiveWins = 0;
-            if (consecutiveLosses >= 3) {
-                timeModifier += 3;
-                consecutiveLosses = 0;
-            }
+            recordStreak(false);
 
             updateAdaptiveDifficulty(
 
@@ -5429,6 +6754,26 @@
                     );
 
                 }
+
+            } else if (
+                isPairRound()
+            ) {
+
+                const verdict =
+                    Boolean(
+                        currentRoundInfo &&
+                        currentRoundInfo.verdict
+                    );
+
+
+                revealPairTruth(verdict);
+
+
+                setRsPanelState(
+                    false,
+                    `<span class="rs-verdict rs-verdict-miss">Time up</span>
+                     <span class="rs-answer">${verdict ? 'Same' : 'Different'}</span>`
+                );
 
             } else {
 
@@ -5479,7 +6824,7 @@
                         }
 
                     },
-                    currentMode === 'rs'
+                    currentMode === 'rs' || isPairRound()
                         ? 2600
                         : 800
                 );
@@ -5723,7 +7068,37 @@
             }
 
 
+            /*
+             * A two-shape board answers with a verdict instead of a
+             * selection, so the panel has to be up before the clock
+             * starts.
+             */
+
+            if (
+                isPairRound()
+            ) {
+
+                setRsPanelState(true, '');
+
+            }
+
+
             startTrialTimer();
+        }
+
+
+        /*
+         * True when the board is the two-shape true/false question.
+         * R/S is excluded: it already has its own single-molecule
+         * question and its own answer buttons.
+         */
+
+        function isPairRound() {
+
+            return (
+                currentMode !== 'rs' &&
+                clampShapeCount(uiSettings.shapeCount) === 2
+            );
         }
 
 
@@ -5735,58 +7110,34 @@
             settings
         ) {
 
-            const numCubes =
-                settings.numCubes;
-
-
-            const pathA =
-                generateComplexPath(numCubes);
-
-
-            const pathAMirror =
-                pathA.map(
-                    p => [-p[0], p[1], p[2]]
+            const round =
+                Blocks.generateBlocksRound(
+                    settings.numCubes,
+                    Math.random,
+                    settings.shapeCount
                 );
 
 
-            const pathB =
-                generateComplexPath(numCubes);
+            if (
+                !round
+            ) {
+
+                return;
+
+            }
 
 
-            const pathBMirror =
-                pathB.map(
-                    p => [-p[0], p[1], p[2]]
-                );
+            currentRoundInfo = round;
 
 
-            const pathC =
-                generateComplexPath(numCubes);
-
-
-            const pathDefs = [
-
-                { path: pathA, matchId: 'TARGET_A' },
-                { path: pathA, matchId: 'TARGET_A' },
-                { path: pathAMirror, matchId: 'MIRROR_A' },
-                { path: pathB, matchId: 'DISTRACTOR_B' },
-                { path: pathBMirror, matchId: 'MIRROR_B' },
-                { path: pathC, matchId: 'DISTRACTOR_C' }
-
-            ];
-
-
-            pathDefs.sort(
-                () => Math.random() - 0.5
-            );
-
-
-            pathDefs.forEach(
+            round.entries.forEach(
                 (def, index) => {
 
                     const innerGroup =
                         createShapeGroup(
                             def.path,
-                            matDefault
+                            matDefault,
+                            round.size === 2 ? 'fill' : null
                         );
 
 
@@ -5802,11 +7153,18 @@
 
                         meshes,
 
-                        matchId: def.matchId,
+                        matchId:
+                            def.role === 'target'
+                                ? 'TARGET_A'
+                                : `DISTRACTOR_${index}`,
 
                         gridIndex: index,
 
                         speedScale: settings.speedScale,
+
+                        payload: {
+                            entry: def
+                        },
 
                         applyState: (item, state) => {
 
@@ -5845,7 +7203,8 @@
                 generateMoleculeRound(
                     settings.level,
                     Math.random,
-                    groupPool()
+                    groupPool(),
+                    settings.shapeCount
                 );
 
 
@@ -5873,7 +7232,10 @@
 
                     const visual =
                         createMoleculeVisual(
-                            entry.molecule
+                            entry.molecule,
+                            round.size === 2
+                                ? { fit: 'fill' }
+                                : {}
                         );
 
 
@@ -6209,8 +7571,15 @@
             isMatch
         ) {
 
+            /*
+             * A molecule round that failed to generate falls back to
+             * blocks, so the round on screen is not always the one
+             * this function knows how to describe.
+             */
+
             if (
-                !currentRoundInfo
+                !currentRoundInfo ||
+                !currentRoundInfo.target
             ) {
 
                 return;
@@ -6342,26 +7711,7 @@
                 choice === currentRsQuestion.answer;
 
 
-            if (isMatch) {
-
-                consecutiveWins++;
-                consecutiveLosses = 0;
-
-                if (consecutiveWins >= 3) {
-                    timeModifier -= 2;
-                    consecutiveWins = 0;
-                }
-
-            } else {
-
-                consecutiveLosses++;
-                consecutiveWins = 0;
-
-                if (consecutiveLosses >= 3) {
-                    timeModifier += 3;
-                    consecutiveLosses = 0;
-                }
-            }
+            recordStreak(isMatch);
 
 
             updateAdaptiveDifficulty(
@@ -6399,6 +7749,202 @@
                     choice,
                     isMatch
                 )
+            );
+
+
+            updateDashboard();
+
+
+            roundTransitionTimeout =
+                setTimeout(
+                    () => {
+
+                        if (sessionActive) {
+                            advanceTrial();
+                        }
+
+                    },
+                    isMatch ? 1400 : 2600
+                );
+        }
+
+
+        // ============================================================
+        // TRUE / FALSE ANSWERING
+        //
+        // The two-shape board. With nothing to choose between, the
+        // question is the verdict itself, and the generators carry the
+        // truth on the round rather than letting the UI re-derive it.
+        // ============================================================
+
+        const BLOCK_RELATIONSHIP_TEXT = {
+
+            target:
+                'the same shape, just turned differently',
+
+            mirror:
+                'mirror images - no rotation brings one onto the other',
+
+            distinct:
+                'two different shapes'
+        };
+
+
+        /*
+         * What the two things on the board actually were. Getting it
+         * wrong only teaches anything if the reason is visible.
+         */
+
+        function pairFeedbackHtml(isMatch, verdict) {
+
+            const verdictMark =
+                isMatch
+                    ? '<span class="rs-verdict rs-verdict-ok">Correct</span>'
+                    : '<span class="rs-verdict rs-verdict-bad">Not quite</span>';
+
+
+            const answer =
+                `<span class="rs-answer">${verdict ? 'Same' : 'Different'}</span>`;
+
+
+            let detail;
+
+            if (
+                currentMode === 'molecules' &&
+                currentRoundInfo &&
+                currentRoundInfo.target
+            ) {
+
+                const target =
+                    currentRoundInfo.target;
+
+
+                const mesoNote =
+                    isMeso(target)
+                        ? ' &middot; <em>meso</em>: achiral despite two stereocentres'
+                        : '';
+
+
+                const other =
+                    currentRoundInfo.entries.find(
+                        entry => entry.role !== 'target'
+                    );
+
+
+                detail =
+                    verdict
+                        ? `Both are ${describeSpec(target)}${mesoNote}`
+                        : `${describeSpec(target)} vs ` +
+                          `${describeSpec(other.spec)}<br>` +
+                          `They are ${RELATIONSHIP_TEXT[other.role]}.`;
+
+            } else {
+
+                const other =
+                    currentRoundInfo &&
+                    currentRoundInfo.entries.find(
+                        entry => entry.role !== 'target'
+                    );
+
+
+                detail =
+                    verdict
+                        ? BLOCK_RELATIONSHIP_TEXT.target
+                        : BLOCK_RELATIONSHIP_TEXT[
+                            other ? other.role : 'distinct'
+                        ];
+            }
+
+
+            return `
+                ${verdictMark}
+                ${answer}
+                <span class="rs-detail">${detail}</span>
+            `;
+        }
+
+
+        /*
+         * Colour the board by what the shapes ARE, not by what was
+         * answered: green when they match, red when they do not. The
+         * verdict line above says whether the call was right.
+         */
+
+        function revealPairTruth(verdict) {
+
+            shapesData.forEach(
+                item =>
+                    setShapeState(
+                        item,
+                        verdict ? 'correct' : 'wrong'
+                    )
+            );
+        }
+
+
+        function evaluateTfAnswer(saidSame) {
+
+            if (
+                !sessionActive ||
+                !isPairRound() ||
+                currentTrialResolved ||
+                !currentRoundInfo
+            ) {
+
+                return;
+
+            }
+
+
+            currentTrialResolved = true;
+
+
+            clearInterval(trialTimer);
+
+
+            totalAttempts++;
+
+
+            const responseMs =
+                performance.now() - trialStartTime;
+
+
+            const verdict =
+                currentRoundInfo.verdict === true;
+
+
+            const isMatch =
+                saidSame === verdict;
+
+
+            recordStreak(isMatch);
+
+
+            updateAdaptiveDifficulty(
+                isMatch,
+                responseMs,
+                false
+            );
+
+
+            if (isMatch) {
+
+                AudioEngine.playSuccess();
+
+                score++;
+
+            } else {
+
+                AudioEngine.playError();
+            }
+
+
+            revealPairTruth(verdict);
+
+
+            setRsPanelState(
+                false,
+                pairFeedbackHtml(isMatch, verdict)
             );
 
 
@@ -6593,9 +8139,17 @@
             event
         ) {
 
+            /*
+             * R/S and the two-shape board both answer with buttons,
+             * so a tap on a shape is just a tap: it must not select,
+             * or the player could resolve a trial by accident while
+             * turning the model to look at it.
+             */
+
             if (
                 !sessionActive ||
-                currentMode === 'rs'
+                currentMode === 'rs' ||
+                isPairRound()
             ) {
 
                 return;
@@ -6774,21 +8328,7 @@
                 shape2.matchId ===
                     'TARGET_A';
 
-            if (isMatch) {
-                consecutiveWins++;
-                consecutiveLosses = 0;
-                if (consecutiveWins >= 3) {
-                    timeModifier -= 2;
-                    consecutiveWins = 0;
-                }
-            } else {
-                consecutiveLosses++;
-                consecutiveWins = 0;
-                if (consecutiveLosses >= 3) {
-                    timeModifier += 3;
-                    consecutiveLosses = 0;
-                }
-            }
+            recordStreak(isMatch);
 
             updateAdaptiveDifficulty(
 
@@ -7114,7 +8654,7 @@
             /* One below what has been established for THIS mode, not zero:
                the three modes are different tasks and each keeps its own. */
             adaptiveLevel =
-                startingLevel(currentMode);
+                startingLevel(progressKey());
 
             sessionPeakLevel =
                 adaptiveLevel;
@@ -7348,7 +8888,7 @@
                tab closing — which until now none of them did. */
             const moved =
                 recordSession(
-                    currentMode,
+                    progressKey(),
                     {
                         seconds: Math.max(0, Math.round(completedSeconds)),
                         score: score,
@@ -7360,7 +8900,7 @@
 
 
             const entry =
-                progress.modes[currentMode] ||
+                progress.modes[progressKey()] ||
                 blankProgressEntry();
 
 
@@ -7958,6 +9498,7 @@
             $('chk-sound').checked = uiSettings.sound;
             $('chk-adaptive').checked = uiSettings.adaptive;
             $('manual-level').value = uiSettings.manualLevel;
+            $('shape-count').value = String(uiSettings.shapeCount);
             $('chk-speed').checked = uiSettings.rotation;
             $('rotation-speed').value = uiSettings.rotationSpeed;
             $('chk-labels').checked = uiSettings.labels;
@@ -8048,6 +9589,22 @@
             uiSettings.trialTime = raw === 'auto' ? 'auto' : Number(raw);
         });
 
+        /* Board size changes the question being asked, so the wording,
+           the answer panel and the grid all have to follow it, and a
+           round already on screen is no longer the right one. */
+        bindSetting('shape-count', 'change', () => {
+            const wasPair = isPairRound();
+            uiSettings.shapeCount = clampShapeCount($('shape-count').value);
+            applyModeToUi();
+            updateResponsiveLayout();
+            if (!sessionActive) return;
+            /* Crossing into or out of the true/false board switches which
+               ladder is being scored, so it starts a clean session for the
+               same reason a mode switch does. */
+            if (wasPair !== isPairRound()) startSession();
+            else spawnRound();
+        });
+
         bindSetting('chk-custom-groups', 'change', () => {
             uiSettings.customGroups = $('chk-custom-groups').checked;
             syncGroupChips();
@@ -8082,6 +9639,8 @@
             uiSettings.mode = keepMode;
             saveSettings();
             applySettingsToControls();
+            applyModeToUi();
+            updateResponsiveLayout();
             if (sessionActive) spawnRound();
         });
 
@@ -8204,6 +9763,15 @@
             const config = modeConfig();
 
 
+            const count =
+                currentMode === 'rs'
+                    ? 1
+                    : clampShapeCount(uiSettings.shapeCount);
+
+
+            const pair = isPairRound();
+
+
             document
                 .querySelectorAll('.mode-btn')
                 .forEach(
@@ -8230,20 +9798,20 @@
             document
                 .getElementById('instruction-bar')
                 .innerHTML =
-                config.task +
-                '<span style="margin-left:12px;">' +
-                'Drag to move • Scroll/pinch to zoom' +
+                config.task(count) +
+                '<span class="instruction-hint">' +
+                'Drag to turn • Pinch to zoom' +
                 '</span>';
 
 
             document
                 .getElementById('start-title')
-                .innerText = config.title;
+                .innerText = config.title(count);
 
 
             document
                 .getElementById('start-blurb')
-                .innerText = config.blurb;
+                .innerText = config.blurb(count);
 
 
             const panel =
@@ -8251,19 +9819,26 @@
 
 
             /*
-             * Both molecule modes use the panel; only R/S needs the
-             * answer buttons in it.
+             * The panel carries feedback for both molecule modes and
+             * for the two-shape board; which set of answer buttons it
+             * shows depends on which question is being asked.
              */
 
             panel.classList.toggle(
                 'is-active',
-                currentMode !== 'blocks'
+                currentMode !== 'blocks' || pair
             );
 
 
             panel.classList.toggle(
                 'has-buttons',
                 currentMode === 'rs'
+            );
+
+
+            panel.classList.toggle(
+                'has-tf',
+                pair
             );
 
 
@@ -8279,6 +9854,25 @@
                     'is-disabled',
                     currentMode === 'blocks'
                 );
+
+
+            /* R/S shows one molecule, so a board size means nothing. */
+            document
+                .getElementById('board-section')
+                .classList.toggle(
+                    'is-disabled',
+                    currentMode === 'rs'
+                );
+
+
+            document
+                .getElementById('shape-count-hint')
+                .textContent =
+                currentMode === 'rs'
+                    ? 'R / S always shows one molecule.'
+                    : pair
+                        ? 'Two on screen: answer Same or Different.'
+                        : `Two of the ${count} match; pick them both.`;
 
 
             updateManualLevelUi();
@@ -8341,7 +9935,7 @@
 
 
         document
-            .querySelectorAll('.rs-btn')
+            .querySelectorAll('.rs-btn[data-answer]')
             .forEach(
                 button => {
 
@@ -8350,6 +9944,22 @@
                         () =>
                             evaluateRsAnswer(
                                 button.dataset.answer
+                            )
+                    );
+                }
+            );
+
+
+        document
+            .querySelectorAll('.tf-btn')
+            .forEach(
+                button => {
+
+                    button.addEventListener(
+                        'click',
+                        () =>
+                            evaluateTfAnswer(
+                                button.dataset.verdict === 'same'
                             )
                     );
                 }
@@ -8365,7 +9975,6 @@
             event => {
 
                 if (
-                    currentMode !== 'rs' ||
                     !sessionActive ||
                     event.metaKey ||
                     event.ctrlKey ||
@@ -8382,8 +9991,22 @@
 
 
                 if (
-                    key === 'r' ||
-                    key === 's'
+                    isPairRound() &&
+                    (key === 'y' || key === 'n')
+                ) {
+
+                    event.preventDefault();
+
+
+                    evaluateTfAnswer(key === 'y');
+
+                    return;
+                }
+
+
+                if (
+                    currentMode === 'rs' &&
+                    (key === 'r' || key === 's')
                 ) {
 
                     event.preventDefault();
