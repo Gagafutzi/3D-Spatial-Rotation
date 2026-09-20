@@ -26,22 +26,23 @@
 
     <style>
         :root {
-            --bg-color: #070b14;
-            --panel-bg: #131b2e;
-            --text-color: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
-            --accent-hover: #2563eb;
+            --bg-color: #080d0b;
+            --panel-bg: #0f1713;
+            --text-color: #c9e0d3;
+            --text-muted: #7e9a8a;
+            --accent: #8fbda4;
+            --accent-hover: #b7d8c5;
+            /* Signal, not scenery: right and wrong stay their own colours. */
             --correct: #10b981;
             --wrong: #ef4444;
-            --card-border: #26334a;
+            --card-border: #243329;
 
             /* Panels float over a lit 3D scene, so they are translucent
                and blurred rather than solid slabs. */
             --glass:
-                rgba(16, 23, 40, 0.72);
+                rgba(15, 23, 19, 0.72);
             --glass-strong:
-                rgba(14, 20, 36, 0.88);
+                rgba(10, 17, 14, 0.88);
             --shadow-soft:
                 0 10px 30px rgba(0, 0, 0, 0.45);
             --shadow-lift:
@@ -65,13 +66,15 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Roboto,
-                Helvetica,
-                Arial,
-                sans-serif;
+                ui-monospace,
+                "JetBrains Mono",
+                "IBM Plex Mono",
+                "SF Mono",
+                SFMono-Regular,
+                Menlo,
+                Consolas,
+                "DejaVu Sans Mono",
+                monospace;
 
             display: flex;
             flex-direction: column;
@@ -92,8 +95,8 @@
             background:
                 linear-gradient(
                     180deg,
-                    #16203a 0%,
-                    #101728 100%
+                    #131d18 0%,
+                    #0d1713 100%
                 );
 
             border-bottom:
@@ -135,7 +138,7 @@
 
             padding: 3px 8px;
 
-            border-radius: 12px;
+            border-radius: 0;
 
             color: white;
 
@@ -206,7 +209,7 @@
             left: 0;
             width: 100%;
             height: 16px; /* Increased to fit text clearly */
-            background: #1e293b;
+            background: #1a2620;
             z-index: 40;
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
             display: flex;
@@ -261,9 +264,9 @@
             background:
                 radial-gradient(
                     ellipse 120% 90% at 50% 8%,
-                    #16203a 0%,
-                    #0d1426 42%,
-                    #070b14 100%
+                    #131d18 0%,
+                    #0b1310 42%,
+                    #080d0b 100%
                 );
 
             width: 100%;
@@ -322,14 +325,14 @@
             background:
                 linear-gradient(
                     180deg,
-                    #18213a 0%,
-                    #111828 100%
+                    #141f1a 0%,
+                    #0e1814 100%
                 );
 
             border:
                 1px solid var(--card-border);
 
-            border-radius: 18px;
+            border-radius: 0;
 
             padding: 34px;
 
@@ -370,7 +373,7 @@
 
             font-weight: 600;
 
-            border-radius: 8px;
+            border-radius: 0;
 
             cursor: pointer;
 
@@ -497,7 +500,7 @@
 
             padding: 10px 20px;
 
-            border-radius: 20px;
+            border-radius: 0;
 
             font-size: 13px;
 
@@ -577,7 +580,7 @@
 
             font-weight: 700;
 
-            border-radius: 12px;
+            border-radius: 0;
 
             border:
                 1px solid var(--card-border);
@@ -621,7 +624,7 @@
             border:
                 1px solid var(--card-border);
 
-            border-radius: 12px;
+            border-radius: 0;
 
             padding: 10px 16px;
 
@@ -749,7 +752,7 @@
 
             padding: 4px 16px 14px;
 
-            border-radius: 12px;
+            border-radius: 0;
 
             gap: 0;
 
@@ -849,7 +852,7 @@
             border:
                 1px solid var(--card-border);
 
-            background: #0b1220;
+            background: #0a110e;
 
             color: var(--text-muted);
 
@@ -912,7 +915,7 @@
         }
 
         .btn-secondary:hover {
-            background: #0b1220;
+            background: #0a110e;
 
             color: var(--text-color);
         }
@@ -961,9 +964,9 @@
             border:
                 1px solid var(--card-border);
 
-            border-radius: 6px;
+            border-radius: 0;
 
-            background: #0b1220;
+            background: #0a110e;
 
             color: var(--text-color);
 
@@ -982,9 +985,9 @@
             border:
                 1px solid var(--card-border);
 
-            border-radius: 6px;
+            border-radius: 0;
 
-            background: #0b1220;
+            background: #0a110e;
 
             color: var(--text-color);
 
@@ -1001,11 +1004,18 @@
             text-align: right;
         }
 
+        /* Flowed, not placed at a measured offset.
+         *
+         * This used to be absolutely positioned at left:220px — a number tuned
+         * to clear "Spatial Rotation" and its PRO badge in the old proportional
+         * face. In a monospace one the title is wider than that, so the link
+         * landed on top of the badge. The header is already a flex row, so the
+         * link can simply be the second item in it; the auto margin keeps the
+         * dashboard hard right, and nothing depends on how wide the title
+         * renders. */
         .community-link {
-            position: absolute;
-            left: 220px;
-            top: 50%;
-            transform: translateY(-50%);
+            margin-left: 14px;
+            margin-right: auto;
             color: var(--text-muted);
             text-decoration: none;
             font-size: 13px;
@@ -3390,9 +3400,9 @@
                     32, 30, 52
                 );
 
-            gradient.addColorStop(0, '#1b2745');
-            gradient.addColorStop(0.45, '#0e1628');
-            gradient.addColorStop(1, '#070b14');
+            gradient.addColorStop(0, '#17241d');
+            gradient.addColorStop(0.45, '#0c1511');
+            gradient.addColorStop(1, '#080d0b');
 
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, 64, 64);
@@ -4140,7 +4150,7 @@
                             ? baseline + fontSize * 0.14
                             : baseline;
 
-                    ctx.fillStyle = '#f5f9ff';
+                    ctx.fillStyle = '#eef5f0';
 
                     ctx.fillText(g.ch, x, y);
 
