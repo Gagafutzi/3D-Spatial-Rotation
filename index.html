@@ -3093,6 +3093,32 @@
 
         let sessionActive = false;
 
+        /* ---- Pausing ----
+           A hidden page is not being trained in front of. The shell hides this
+           trainer in a frame when you go back to the hub menu and delivers the
+           browser's own `visibilitychange`, which is the same signal a real tab
+           switch sends — so both are handled here and neither needs to know the
+           other exists.
+
+           The two clocks are gated rather than cleared. Both are intervals set
+           up inside long blocks, and re-arming one from outside would mean a
+           second copy of that setup drifting from the first; a flag the ticks
+           read is the same freeze with nothing to keep in step. The trial on
+           screen and its remaining time are untouched, so the session continues
+           exactly where it stopped.
+
+           The short feedback delays are left alone deliberately. They are a few
+           hundred milliseconds of "show the result, then move on", and pausing
+           one would leave the result on screen with nothing to follow it. */
+        let trainerPaused = false;
+
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+                trainerPaused = document.hidden;
+            }
+        );
+
         let trialTimer = null;
 
         let sessionTimer = null;
@@ -5286,6 +5312,15 @@
                 setInterval(
                     () => {
 
+                        if (
+                            trainerPaused
+                        ) {
+
+                            return;
+
+                        }
+
+
                         trialTimeRemaining =
                             Math.max(
                                 0,
@@ -5333,7 +5368,8 @@
                     () => {
 
                         if (
-                            !sessionActive
+                            !sessionActive ||
+                            trainerPaused
                         ) {
 
                             return;
